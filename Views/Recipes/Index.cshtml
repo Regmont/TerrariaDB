@@ -1,0 +1,47 @@
+﻿@model IEnumerable<TerrariaDB.Models.Terraria.Recipe>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.ResultItemQuantity)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ResultItem)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CraftingStation)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.ResultItemQuantity)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ResultItem.CurrencyName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CraftingStation.CraftingStationName)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.RecipeId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.RecipeId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.RecipeId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

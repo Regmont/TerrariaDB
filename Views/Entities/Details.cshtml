@@ -1,0 +1,36 @@
+﻿@model TerrariaDB.Models.Terraria.Entity
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Entity</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Hp)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Hp)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Defense)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Defense)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.GameObject)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.GameObject.GameObjectName)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.EntityId">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
