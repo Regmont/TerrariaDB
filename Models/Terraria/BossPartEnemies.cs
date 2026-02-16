@@ -6,7 +6,7 @@
         public short EnemyId { get; set; }
         public short Quantity { get; set; }
 
-        public BossPart? BossPart { get; set; }
-        public Enemy? Enemy { get; set; }
+        public BossPart BossPart { get; set; } = null!;
+        public Enemy Enemy { get; set; } = null!;
     }
 }

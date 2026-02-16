@@ -7,8 +7,8 @@
         public short HostileEntityId { get; set; }
         public short Quantity { get; set; }
 
-        public Boss? Boss { get; set; }
-        public HostileEntity? HostileEntity { get; set; }
+        public Boss Boss { get; set; } = null!;
+        public HostileEntity HostileEntity { get; set; } = null!;
         public ICollection<BossPartEnemies> BossPartEnemies { get; set; } = new List<BossPartEnemies>();
     }
 }

@@ -6,7 +6,7 @@
         public short ItemId { get; set; }
         public short Quantity { get; set; }
 
-        public Entity? Entity { get; set; }
-        public Item? Item { get; set; }
+        public Entity Entity { get; set; } = null!;
+        public Item Item { get; set; } = null!;
     }
 }

@@ -1,0 +1,11 @@
+﻿@model dynamic
+
+@if (Model.CanEdit)
+{
+    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+}
+
+@if (Model.CanDelete)
+{
+    <a asp-action="Delete" asp-route-id="@Model.Id">Delete</a>
+}

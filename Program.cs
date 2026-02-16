@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TerrariaDB.Data;
 
 namespace TerrariaDB
@@ -30,7 +31,6 @@ namespace TerrariaDB
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -38,6 +38,20 @@ namespace TerrariaDB
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            //admin testing
+            app.Use(async (context, next) =>
+            {
+                var identity = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.Name, "TestUser"),
+                    new Claim(ClaimTypes.Role, "Admin")
+                }, "Test");
+
+                context.User = new ClaimsPrincipal(identity);
+
+                await next();
+            });
 
             app.UseAuthorization();
 

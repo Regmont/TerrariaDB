@@ -8,10 +8,10 @@
         public int BasePrice { get; set; }
         public string CurrencyName { get; set; } = string.Empty;
 
-        public GameObject? GameObject { get; set; }
+        public GameObject GameObject { get; set; } = null!;
         public CraftingStation? CraftingStation { get; set; }
         public Boss? SummonedBoss { get; set; }
-        public CurrencyType? CurrencyType { get; set; }
+        public CurrencyType CurrencyType { get; set; } = null!;
         public ICollection<BossDrop> BossDrops { get; set; } = new List<BossDrop>();
         public ICollection<EntityDrop> EntityDrops { get; set; } = new List<EntityDrop>();
         public ICollection<TradeOffer> TradeOffers { get; set; } = new List<TradeOffer>();

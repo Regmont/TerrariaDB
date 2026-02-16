@@ -5,7 +5,7 @@
         public short EnemyId { get; set; }
         public short HostileEntityId { get; set; }
 
-        public HostileEntity? HostileEntity { get; set; }
+        public HostileEntity HostileEntity { get; set; } = null!;
         public ICollection<BossPartEnemies> BossPartEnemies { get; set; } = new List<BossPartEnemies>();
     }
 }

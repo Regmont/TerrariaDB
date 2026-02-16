@@ -7,8 +7,8 @@
         public string TradeTypeName { get; set; } = string.Empty;
         public short Quantity { get; set; }
 
-        public TownNpc? TownNpc { get; set; }
-        public Item? Item { get; set; }
-        public TradeType? TradeType { get; set; }
+        public TownNpc TownNpc { get; set; } = null!;
+        public Item Item { get; set; } = null!;
+        public TradeType TradeType { get; set; } = null!;
     }
 }

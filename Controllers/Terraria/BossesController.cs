@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria;
 
 namespace TerrariaDB.Controllers.Terraria
 {
-    public class BossesController : Controller
+    public class BossesController : BaseController
     {
         private readonly ApplicationDbContext _context;
 
@@ -22,8 +19,25 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Bosses
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Boss.Include(b => b.SummonItem);
-            return View(await applicationDbContext.ToListAsync());
+            var bosses = await _context.Boss
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.GameObject)
+                .ToListAsync();
+
+            var viewModel = bosses.Select(b => SetPermissions(new BossIndexViewModel
+            {
+                BossName = b.BossName,
+                Sprite = b.BossParts?
+                    .FirstOrDefault()?
+                    .HostileEntity?
+                    .Entity?
+                    .GameObject?
+                    .Sprite,
+            }));
+
+            return View(viewModel);
         }
 
         // GET: Bosses/Details/5

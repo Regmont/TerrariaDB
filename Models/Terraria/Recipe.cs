@@ -7,7 +7,7 @@
         public string? CraftingStationName { get; set; }
         public short ResultItemQuantity { get; set; }
 
-        public Item? ResultItem { get; set; }
+        public Item ResultItem { get; set; } = null!;
         public CraftingStation? CraftingStation { get; set; }
         public ICollection<RecipeItems> RecipeItems { get; set; } = new List<RecipeItems>();
     }
