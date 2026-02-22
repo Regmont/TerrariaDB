@@ -1,4 +1,4 @@
-﻿@model IEnumerable<TerrariaDB.ViewModels.Terraria.BossIndexViewModel>
+﻿@model TerrariaDB.ViewModels.Terraria.Boss.BossIndexViewModel
 
 @{
     ViewData["Title"] = "Bosses";
@@ -6,29 +6,36 @@
 
 <h1>Bosses</h1>
 
-@if (User.IsInRole("Admin"))
-{
-    <p>
-        <a asp-action="Create">Create New Boss</a>
-    </p>
-}
-
-<table>
-    @foreach (var boss in Model)
+<div>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
     {
-        <tr>
-            <td>
-                @if (!string.IsNullOrEmpty(boss.Sprite))
-                {
-                    <img src="@boss.Sprite" alt="@boss.BossName" />
-                }
-            </td>
-            <td>@boss.BossName</td>
-            <td>
-                <a asp-action="Details" asp-route-id="@boss.BossName">Details</a>
-                <partial name="_EditDeleteButtons"
-                    model="new { Id = boss.BossName, CanEdit = boss.CanEdit, CanDelete = boss.CanDelete }" />
-            </td>
-        </tr>
+        <a asp-action="Create">Create</a>
     }
-</table>
+</div>
+
+<div>
+    <table>
+        @foreach (var boss in Model.Bosses)
+        {
+            <tr>
+                <td>
+                    <div style="display: flex; flex-direction: column;">
+                        <img src="@boss.Sprite" alt="@boss.Name" />
+                        <span>@boss.Name</span>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: row;">
+                        <a asp-action="Details" asp-route-id="@boss.Id">Details</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@boss.Id">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@boss.Id">Delete</a>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+    </table>
+</div>

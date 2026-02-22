@@ -1,47 +1,103 @@
-﻿@model IEnumerable<TerrariaDB.Models.Terraria.Recipe>
+﻿@model TerrariaDB.ViewModels.Terraria.Recipe.RecipeIndexViewModel
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Recipes";
 }
 
-<h1>Index</h1>
+<h1>Recipes</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ResultItemQuantity)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ResultItem)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CraftingStation)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.ResultItemQuantity)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ResultItem.CurrencyName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CraftingStation.CraftingStationName)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.RecipeId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.RecipeId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.RecipeId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create">Create</a>
+    }
+</div>
+
+<div>
+    <table>
+        <thead>
+            <tr>
+                <th>Result Item</th>
+                <th>Ingredients</th>
+                <th>Crafting Station</th>
+                <th>
+                    <button type="button">Clear Filters</button>
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    <div style="display: flex; flex-direction: row;">
+                        <select asp-items="Model.ResultItemFilterOptions"></select>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: row;">
+                        <select asp-items="Model.IngredientFilterOptions"></select>
+                        <select asp-items="Model.IngredientFilterOptions"></select>
+                    </div>
+                </td>
+                <td>
+                    <select asp-items="Model.CraftingStationFilterOptions"></select>
+                </td>
+                <td></td>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var recipe in Model.Recipes)
+            {
+                <tr>
+                    <td>
+                        <div style="display: flex; flex-direction: row;">
+                            <div style="display: flex; flex-direction: column;">
+                                <img src="@recipe.ResultItem.Sprite" alt="@recipe.ResultItem.Name" />
+                                <span>@recipe.ResultItem.Name</span>
+                                <span>@recipe.ResultItemQuantity</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: row;">
+                            @for (int i = 0; i < 8; i++)
+                            {
+                                if (i < recipe.Ingredients.Count)
+                                {
+                                    <div style="display: flex; flex-direction: column;">
+                                        <img src="@recipe.Ingredients[i].Sprite" alt="@recipe.Ingredients[i].Name" />
+                                        <span>@recipe.Ingredients[i].Name</span>
+                                        <span>@recipe.Ingredients[i].Quantity</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span>Empty</span>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </td>
+                    <td>
+                        @if (recipe.CraftingStation != null)
+                        {
+                            <div style="display: flex; flex-direction: column;">
+                                <img src="@recipe.CraftingStation.Sprite" alt="@recipe.CraftingStation.Name" />
+                                <span>@recipe.CraftingStation.Name</span>
+                            </div>
+                        }
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: row;">
+                            <a asp-action="Details" asp-route-id="@recipe.Id">Details</a>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@recipe.Id">Edit</a>
+                                <a asp-action="Delete" asp-route-id="@recipe.Id">Delete</a>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

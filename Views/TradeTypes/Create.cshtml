@@ -1,0 +1,20 @@
+﻿@model TerrariaDB.ViewModels.Terraria.TradeType.TradeTypeCreateViewModel
+
+@{
+    ViewData["Title"] = "Create Trade Type";
+}
+
+<h1>Create Trade Type</h1>
+
+<a asp-action="Index">Back</a>
+
+<form asp-action="Create" method="post">
+    <div>
+        <div>
+            <label>Name:</label>
+            <input asp-for="TradeTypeName" type="text" />
+        </div>
+    </div>
+
+    <button type="submit">Save</button>
+</form>

@@ -1,0 +1,25 @@
+﻿@model TerrariaDB.ViewModels.Terraria.TradeType.TradeTypeDeleteViewModel
+
+@{
+    ViewData["Title"] = "Delete Trade Type";
+}
+
+<h1>Delete Trade Type</h1>
+
+<a asp-action="Index">Back</a>
+
+<div>
+    <div>
+        <span>@Model.TradeTypeName</span>
+    </div>
+
+    @if (Model.HasRelatedTrades)
+    {
+        <div>This trade type can't be deleted because there are some trades that use it!</div>
+    }
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="TradeTypeName" />
+        <button type="submit" disabled="@Model.HasRelatedTrades">Confirm</button>
+    </form>
+</div>

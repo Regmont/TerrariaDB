@@ -1,29 +1,37 @@
-﻿@model IEnumerable<TerrariaDB.Models.Terraria.TradeType>
+﻿@model TerrariaDB.ViewModels.Terraria.TradeType.TradeTypeIndexViewModel
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Trade Types";
 }
 
-<h1>Index</h1>
+<h1>Trade Types</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.TradeTypeName">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.TradeTypeName">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.TradeTypeName">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create">Create</a>
+    }
+</div>
+
+<div>
+    <table>
+        @foreach (var tradeTypeName in Model.TradeTypeNames)
+        {
+            <tr>
+                <td>
+                    <span>@tradeTypeName</span>
+                </td>
+                @if (User.IsInRole("Admin"))
+                {
+                    <td>
+                        <div style="display: flex; flex-direction: row;">
+                            <a asp-action="Edit" asp-route-id="@tradeTypeName">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@tradeTypeName">Delete</a>
+                        </div>
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+</div>

@@ -1,53 +1,41 @@
-﻿@model IEnumerable<TerrariaDB.Models.Terraria.Item>
+﻿@model TerrariaDB.ViewModels.Terraria.Item.ItemIndexViewModel
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Items";
 }
 
-<h1>Index</h1>
+<h1>Items</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.BasePrice)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.GameObject)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CraftingStation)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CurrencyType)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.BasePrice)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.GameObject.GameObjectName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CraftingStation.CraftingStationName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CurrencyType.CurrencyName)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ItemId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ItemId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ItemId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create">Create</a>
+    }
+</div>
+
+<div>
+    <table>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>
+                    <div style="display: flex; flex-direction: column;">
+                        <img src="@item.Sprite" alt="@item.Name" />
+                        <span>@item.Name</span>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: row;">
+                        <a asp-action="Details" asp-route-id="@item.Id">Details</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+    </table>
+</div>

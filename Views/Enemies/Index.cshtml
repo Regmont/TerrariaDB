@@ -1,35 +1,41 @@
-﻿@model IEnumerable<TerrariaDB.Models.Terraria.Enemy>
+﻿@model TerrariaDB.ViewModels.Terraria.Enemy.EnemyIndexViewModel
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Enemies";
 }
 
-<h1>Index</h1>
+<h1>Enemies</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.HostileEntity)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.HostileEntity.HostileEntityId)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.EnemyId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.EnemyId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.EnemyId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create">Create</a>
+    }
+</div>
+
+<div>
+    <table>
+        @foreach (var enemy in Model.Enemies)
+        {
+            <tr>
+                <td>
+                    <div style="display: flex; flex-direction: column;">
+                        <img src="@enemy.Sprite" alt="@enemy.Name" />
+                        <span>@enemy.Name</span>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: row;">
+                        <a asp-action="Details" asp-route-id="@enemy.Id">Details</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@enemy.Id">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@enemy.Id">Delete</a>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+    </table>
+</div>

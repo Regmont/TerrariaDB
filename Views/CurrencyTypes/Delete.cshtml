@@ -1,0 +1,25 @@
+﻿@model TerrariaDB.ViewModels.Terraria.CurrencyType.CurrencyTypeDeleteViewModel
+
+@{
+    ViewData["Title"] = "Delete Currency Type";
+}
+
+<h1>Delete Currency Type</h1>
+
+<a asp-action="Index">Back</a>
+
+<div>
+    <div>
+        <span>@Model.CurrencyName</span>
+    </div>
+
+    @if (Model.HasRelatedItems)
+    {
+        <div>This currency type can't be deleted because there are some items that use it!</div>
+    }
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="CurrencyName" />
+        <button type="submit" disabled="@Model.HasRelatedItems">Confirm</button>
+    </form>
+</div>

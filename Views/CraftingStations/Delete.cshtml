@@ -1,0 +1,28 @@
+﻿@model TerrariaDB.ViewModels.Terraria.CraftingStation.CraftingStationDeleteViewModel
+
+@{
+    ViewData["Title"] = "Delete Crafting Station";
+}
+
+<h1>Delete Crafting Station</h1>
+
+<a asp-action="Index">Back</a>
+
+<div>
+    <div>
+        <div style="display: flex; flex-direction: column;">
+            <img src="@Model.Sprite" alt="@Model.Name" />
+            <span>@Model.Name</span>
+        </div>
+    </div>
+
+    @if (Model.HasRelatedRecipes)
+    {
+        <div>All related recipes will be deleted!</div>
+    }
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="CraftingStationName" />
+        <button type="submit">Confirm</button>
+    </form>
+</div>
