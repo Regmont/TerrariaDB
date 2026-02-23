@@ -1,24 +1,61 @@
-﻿@model TerrariaDB.Models.Terraria.TownNpc
+﻿@model TerrariaDB.ViewModels.Terraria.TownNpc.TownNpcDetailsViewModel
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Town NPC Details";
 }
 
-<h1>Details</h1>
+<h1>Town NPC Details</h1>
 
 <div>
-    <h4>TownNpc</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Entity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Entity.GameObjectName)
-        </dd>
-    </dl>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.TownNpcId">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.TownNpcId">Delete</a>
+    }
 </div>
+
+<span>@Model.Name</span>
+
+<span>@Model.Description</span>
+
+<div style="display: flex; flex-direction: row;">
+    @foreach (var transformation in Model.Transformations.Take(4))
+    {
+        <div style="display: flex; flex-direction: column;">
+            <img src="@transformation.Sprite" alt="@transformation.Name" />
+            <span>@transformation.Hp</span>
+            <span>@transformation.Defense</span>
+            <span>@transformation.EntityId</span>
+        </div>
+    }
+</div>
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.TownNpcId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <span>Drop</span>
+    <div style="display: flex; flex-direction: row; overflow-x: auto;">
+        @foreach (var drop in Model.Drops.Take(5))
+        {
+            <div style="display: flex; flex-direction: column;">
+                <img src="@drop.Sprite" alt="@drop.Name" />
+                <span>@drop.Name</span>
+                <span>@drop.Quantity</span>
+            </div>
+        }
+    </div>
+</div>
+
+<span>Trades</span>
+
+<div style="display: flex; flex-direction: row; overflow-x: auto;">
+    @foreach (var trade in Model.Trades.Take(15))
+    {
+        <div style="display: flex; flex-direction: column;">
+            <img src="@trade.Sprite" alt="@trade.Name" />
+            <span>@trade.Name</span>
+            <span>@trade.Quantity</span>
+            <span>@trade.TotalPrice</span>
+            <span>@trade.TradeType</span>
+        </div>
+    }
 </div>

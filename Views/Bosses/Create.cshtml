@@ -1,37 +1,122 @@
-﻿@model TerrariaDB.Models.Terraria.Boss
+﻿@model TerrariaDB.ViewModels.Terraria.Boss.BossCreateViewModel
 
-@{
-    ViewData["Title"] = "Create";
-}
+<h1>Create Boss</h1>
 
-<h1>Create</h1>
+<a asp-action="Index">Back</a>
 
-<h4>Boss</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="BossName" class="control-label"></label>
-                <input asp-for="BossName" class="form-control" />
-                <span asp-validation-for="BossName" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="SummonItemId" class="control-label"></label>
-                <select asp-for="SummonItemId" class ="form-control" asp-items="ViewBag.SummonItemId"></select>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Create" method="post">
+    <div>
+        <div>
+            <label>Name:</label>
+            <input asp-for="BossName" type="text" maxlength="50" required />
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    <div>
+        <div>
+            <label>Summon Item:</label>
+            <select asp-for="SummonItemId" asp-items="Model.AvailableItems"></select>
+        </div>
+    </div>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+    <div>
+        <label>Boss Drop</label>
+        <div style="display: flex; flex-direction: row;">
+            @for (int i = 0; i < 15; i++)
+            {
+                <div>
+                    <select asp-for="BossDrops[i].ItemId" asp-items="Model.AvailableItems"></select>
+                    <input asp-for="BossDrops[i].Quantity" type="number" min="1" max="150" />
+                    <button type="button">Clear</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div>
+        <label>Boss Parts</label>
+        <div style="display: flex; flex-direction: column;">
+            @for (int i = 0; i < 5; i++)
+            {
+                <div>
+                    <div>
+                        <div>
+                            <label>Part Name:</label>
+                            <input asp-for="BossParts[i].PartName" type="text" maxlength="50" required="@(i == 0)" />
+                        </div>
+                        <div>
+                            <label>Description:</label>
+                            <input asp-for="BossParts[i].Description" type="text" maxlength="200" />
+                        </div>
+                        <div>
+                            <label>Quantity:</label>
+                            <input asp-for="BossParts[i].Quantity" type="number" min="1" max="50" />
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: row;">
+                        @for (int j = 0; j < 2; j++)
+                        {
+                            <div>
+                                <div>
+                                    <label>Sprite:</label>
+                                    <input asp-for="BossParts[i].Stages[j].Sprite" type="text" maxlength="500" />
+                                </div>
+                                <div>
+                                    <label>HP:</label>
+                                    <input asp-for="BossParts[i].Stages[j].Hp" type="number" min="0" max="150000" />
+                                </div>
+                                <div>
+                                    <label>Defense:</label>
+                                    <input asp-for="BossParts[i].Stages[j].Defense" type="number" min="0" max="100" />
+                                </div>
+                                <div>
+                                    <label>Game ID:</label>
+                                    <input asp-for="BossParts[i].Stages[j].EntityId" type="number" min="-500" max="1000" />
+                                </div>
+                                <div>
+                                    <label>Contact Damage:</label>
+                                    <input asp-for="BossParts[i].Stages[j].ContactDamage" type="number" min="0" max="500" />
+                                </div>
+
+                                <div>
+                                    <label>Spawn Enemies</label>
+                                    <div style="display: flex; flex-direction: row;">
+                                        @for (int k = 0; k < 3; k++)
+                                        {
+                                            <div>
+                                                <select asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].EnemyId" asp-items="Model.AvailableEnemies"></select>
+                                                <input asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" type="number" min="1" max="50" />
+                                                <button type="button">Clear</button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label>Drop</label>
+                                    <div style="display: flex; flex-direction: row;">
+                                        @for (int k = 0; k < 3; k++)
+                                        {
+                                            <div>
+                                                <select asp-for="BossParts[i].Stages[j].Drops[k].ItemId" asp-items="Model.AvailableItems"></select>
+                                                <input asp-for="BossParts[i].Stages[j].Drops[k].Quantity" type="number" min="1" max="50" />
+                                                <button type="button">Clear</button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <button type="button">Clear</button>
+                            </div>
+                        }
+                    </div>
+
+                    <button type="button">Clear</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button type="submit">Save</button>
+</form>

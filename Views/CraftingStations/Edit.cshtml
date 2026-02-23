@@ -1,29 +1,23 @@
-﻿@model TerrariaDB.Models.Terraria.CraftingStation
+﻿@model TerrariaDB.ViewModels.Terraria.CraftingStation.CraftingStationEditViewModel
 
-@{
-    ViewData["Title"] = "Edit";
-}
+<h1>Edit Crafting Station</h1>
 
-<h1>Edit</h1>
+<a asp-action="Index">Back</a>
 
-<h4>CraftingStation</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="CraftingStationName" />
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="OriginalCraftingStationName" />
+
+    <div>
+        <div>
+            <label>Name:</label>
+            <input asp-for="CraftingStationName" type="text" maxlength="50" required />
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    <div>
+        <label>Represented by</label>
+        <select asp-for="SelectedItemId" asp-items="Model.AvailableItems" required></select>
+    </div>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+    <button type="submit">Save</button>
+</form>

@@ -1,32 +1,78 @@
-﻿@model TerrariaDB.Models.Terraria.TownNpc
+﻿@model TerrariaDB.ViewModels.Terraria.TownNpc.TownNpcCreateViewModel
 
-@{
-    ViewData["Title"] = "Create";
-}
+<h1>Create Town NPC</h1>
 
-<h1>Create</h1>
+<a asp-action="Index">Back</a>
 
-<h4>TownNpc</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="EntityId" class="control-label"></label>
-                <select asp-for="EntityId" class ="form-control" asp-items="ViewBag.EntityId"></select>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Create" method="post">
+    <div>
+        <div>
+            <label>Name:</label>
+            <input asp-for="Name" type="text" maxlength="50" required />
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    <div>
+        <div>
+            <label>Description:</label>
+            <input asp-for="Description" type="text" maxlength="200" />
+        </div>
+    </div>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+    <div>
+        <div style="display: flex; flex-direction: row;">
+            @for (int i = 0; i < 4; i++)
+            {
+                <div>
+                    <div>
+                        <label>Sprite:</label>
+                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" />
+                    </div>
+                    <div>
+                        <label>HP:</label>
+                        <input asp-for="Stages[i].Hp" type="number" value="250" />
+                    </div>
+                    <div>
+                        <label>Defense:</label>
+                        <input asp-for="Stages[i].Defense" type="number" value="15" />
+                    </div>
+                    <div>
+                        <label>Game ID:</label>
+                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" />
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div>
+        <label>Drop</label>
+        <div style="display: flex; flex-direction: row;">
+            @for (int i = 0; i < 5; i++)
+            {
+                <div>
+                    <select asp-for="Drops[i].ItemId" asp-items="Model.AvailableItems"></select>
+                    <input asp-for="Drops[i].Quantity" type="number" min="1" max="100" />
+                    <button type="button">Clear</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div>
+        <label>Trades</label>
+        <div style="display: flex; flex-direction: row;">
+            @for (int i = 0; i < 15; i++)
+            {
+                <div>
+                    <select asp-for="Trades[i].ItemId" asp-items="Model.AvailableItems"></select>
+                    <input asp-for="Trades[i].Quantity" type="number" min="1" max="50" />
+                    <select asp-for="Trades[i].TradeType" asp-items="Model.AvailableTradeTypes" required></select>
+                    <button type="button">Clear</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button type="submit">Save</button>
+</form>

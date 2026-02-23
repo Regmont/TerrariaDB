@@ -1,42 +1,97 @@
-﻿@model TerrariaDB.Models.Terraria.Item
+﻿@model TerrariaDB.ViewModels.Terraria.Item.ItemDetailsViewModel
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Item Details";
 }
 
-<h1>Details</h1>
+<h1>Item Details</h1>
 
 <div>
-    <h4>Item</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.BasePrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.BasePrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.GameObject)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.GameObject.GameObjectName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CraftingStation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CraftingStation.CraftingStationName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CurrencyType)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CurrencyType.CurrencyName)
-        </dd>
-    </dl>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ItemId">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.ItemId">Delete</a>
+    }
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.ItemId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<a asp-controller="Recipes"
+   asp-action="Index"
+   asp-route-resultItem="@Model.Name">
+   Recipes
+</a>
+
+<span>@Model.Name</span>
+
+<span>@Model.Description</span>
+
+<span>@Model.BasePrice</span>
+
+<span>@Model.CurrencyType</span>
+
+@if (!string.IsNullOrEmpty(Model.SummonedBossName))
+{
+    <span>Summoned boss</span>
+    <div style="display: flex; flex-direction: column;">
+        <img src="@Model.SummonedBossSprite" alt="@Model.SummonedBossName" />
+        <span>@Model.SummonedBossName</span>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.CraftingStationName))
+{
+    <span>Crafting station</span>
+    <span>@Model.CraftingStationName</span>
+}
+
+<div style="display: flex; flex-direction: row;">
+    @foreach (var transformation in Model.Transformations.Take(4))
+    {
+        <img src="@transformation.Sprite" alt="@transformation.Name" />
+    }
 </div>
+
+@if (Model.DroppedFromBosses.Any())
+{
+    <span>Dropped From Bosses</span>
+    <div style="display: flex; flex-direction: row;">
+        @foreach (var boss in Model.DroppedFromBosses.Take(3))
+        {
+            <div style="display: flex; flex-direction: column;">
+                <img src="@boss.Sprite" alt="@boss.Name" />
+                <span>@boss.Name</span>
+            </div>
+        }
+    </div>
+}
+
+@if (Model.DroppedFromEntities.Any())
+{
+    <span>Dropped From Entities</span>
+    <div style="display: flex; flex-direction: row; overflow-x: auto;">
+        @foreach (var entity in Model.DroppedFromEntities.Take(15))
+        {
+            <div style="display: flex; flex-direction: column;">
+                <img src="@entity.Sprite" alt="@entity.Name" />
+                <span>@entity.Name</span>
+            </div>
+        }
+    </div>
+}
+
+@if (Model.TradedByNpcs.Any())
+{
+    <span>Traded By NPCs</span>
+    <div style="display: flex; flex-direction: row; overflow-x: auto;">
+        @foreach (var npc in Model.TradedByNpcs.Take(3))
+        {
+            <div style="display: flex; flex-direction: column;">
+                <img src="@npc.Sprite" alt="@npc.Name" />
+                <span>@npc.Name</span>
+                <span>@npc.Quantity</span>
+                <span>@npc.TotalPrice</span>
+                <span>@npc.TradeType</span>
+            </div>
+        }
+    </div>
+}

@@ -1,34 +1,68 @@
-﻿@model TerrariaDB.Models.Terraria.Enemy
+﻿@model TerrariaDB.ViewModels.Terraria.Enemy.EnemyEditViewModel
 
-@{
-    ViewData["Title"] = "Edit";
-}
+<h1>Edit Enemy</h1>
 
-<h1>Edit</h1>
+<a asp-action="Index">Back</a>
 
-<h4>Enemy</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="EnemyId" />
-            <div class="form-group">
-                <label asp-for="HostileEntityId" class="control-label"></label>
-                <select asp-for="HostileEntityId" class="form-control" asp-items="ViewBag.HostileEntityId"></select>
-                <span asp-validation-for="HostileEntityId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="EnemyId" />
+
+    <div>
+        <div>
+            <label>Name:</label>
+            <input asp-for="Name" type="text" maxlength="50" required />
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    <div>
+        <div>
+            <label>Description:</label>
+            <input asp-for="Description" type="text" maxlength="200" />
+        </div>
+    </div>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+    <div>
+        <div style="display: flex; flex-direction: row;">
+            @for (int i = 0; i < 3; i++)
+            {
+                <div>
+                    <div>
+                        <label>Sprite:</label>
+                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" />
+                    </div>
+                    <div>
+                        <label>HP:</label>
+                        <input asp-for="Stages[i].Hp" type="number" min="0" max="30000" />
+                    </div>
+                    <div>
+                        <label>Defense:</label>
+                        <input asp-for="Stages[i].Defense" type="number" min="0" max="10000" />
+                    </div>
+                    <div>
+                        <label>Game ID:</label>
+                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" />
+                    </div>
+                    <div>
+                        <label>Contact Damage:</label>
+                        <input asp-for="Stages[i].ContactDamage" type="number" min="0" max="1000" />
+                    </div>
+                    <div>
+                        <label>Drop</label>
+                        <div style="display: flex; flex-direction: row;">
+                            @for (int j = 0; j < 5; j++)
+                            {
+                                <div>
+                                    <select asp-for="Stages[i].Drops[j].ItemId" asp-items="Model.AvailableItems"></select>
+                                    <input asp-for="Stages[i].Drops[j].Quantity" type="number" min="1" max="50" />
+                                    <button type="button">Clear</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button type="submit">Save</button>
+</form>

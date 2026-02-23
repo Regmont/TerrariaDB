@@ -1,24 +1,90 @@
-﻿@model TerrariaDB.Models.Terraria.Boss
+﻿@model TerrariaDB.ViewModels.Terraria.Boss.BossDetailsViewModel
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Boss Details";
 }
 
-<h1>Details</h1>
+<h1>Boss Details</h1>
 
 <div>
-    <h4>Boss</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SummonItem)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SummonItem.CurrencyName)
-        </dd>
-    </dl>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.BossName">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.BossName">Delete</a>
+    }
 </div>
+
+<span>@Model.Name</span>
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.BossName">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <span>Boss Drop</span>
+    <div style="display: flex; flex-direction: row;">
+        @foreach (var drop in Model.Drops.Take(15))
+        {
+            <div style="display: flex; flex-direction: column;">
+                <img src="@drop.Sprite" alt="@drop.Name" />
+                <span>@drop.Name</span>
+                <span>@drop.Quantity</span>
+                <button type="button">Clear</button>
+            </div>
+        }
+    </div>
+</div>
+
+<div style="display: flex; flex-direction: column; overflow-y: auto; max-height: 500px;">
+    @foreach (var part in Model.BossParts.Take(5))
+    {
+        <div>
+            <span>@part.Name</span>
+            <span>@part.Description</span>
+            <span>@part.Quantity</span>
+
+            <div style="display: flex; flex-direction: row;">
+                @foreach (var stage in part.Stages.Take(2))
+                {
+                    <div>
+                        <div style="display: flex; flex-direction: column;">
+                            <img src="@stage.Sprite" alt="@stage.Name" />
+                            <span>@stage.Hp</span>
+                            <span>@stage.Defense</span>
+                            <span>@stage.EntityId</span>
+                        </div>
+
+                        <span>@stage.ContactDamage</span>
+
+                        <div>
+                            <span>Summoned Enemies</span>
+                            <div style="display: flex; flex-direction: row; overflow-x: auto;">
+                                @foreach (var enemy in stage.SummonedEnemies.Take(3))
+                                {
+                                    <div style="display: flex; flex-direction: column;">
+                                        <img src="@enemy.Sprite" alt="@enemy.Name" />
+                                        <span>@enemy.Name</span>
+                                        <span>@enemy.Quantity</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div>
+                            <span>Drop</span>
+                            <div style="display: flex; flex-direction: row; overflow-x: auto;">
+                                @foreach (var drop in stage.Drops.Take(3))
+                                {
+                                    <div style="display: flex; flex-direction: column;">
+                                        <img src="@drop.Sprite" alt="@drop.Name" />
+                                        <span>@drop.Name</span>
+                                        <span>@drop.Quantity</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <button type="button">Clear</button>
+        </div>
+    }
 </div>

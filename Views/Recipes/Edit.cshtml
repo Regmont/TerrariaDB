@@ -1,44 +1,51 @@
-﻿@model TerrariaDB.Models.Terraria.Recipe
+﻿@model TerrariaDB.ViewModels.Terraria.Recipe.RecipeEditViewModel
 
-@{
-    ViewData["Title"] = "Edit";
-}
+<h1>Edit Recipe</h1>
 
-<h1>Edit</h1>
+<a asp-action="Index">Back</a>
 
-<h4>Recipe</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="RecipeId" />
-            <div class="form-group">
-                <label asp-for="ResultItemId" class="control-label"></label>
-                <select asp-for="ResultItemId" class="form-control" asp-items="ViewBag.ResultItemId"></select>
-                <span asp-validation-for="ResultItemId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CraftingStationName" class="control-label"></label>
-                <select asp-for="CraftingStationName" class="form-control" asp-items="ViewBag.CraftingStationName"></select>
-                <span asp-validation-for="CraftingStationName" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ResultItemQuantity" class="control-label"></label>
-                <input asp-for="ResultItemQuantity" class="form-control" />
-                <span asp-validation-for="ResultItemQuantity" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="RecipeId" />
+
+    <div>
+        <div>
+            <label>Result Item:</label>
+            <select asp-for="ResultItemId" asp-items="Model.AvailableItems" required></select>
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    <div>
+        <div>
+            <label>Result quantity:</label>
+            <input asp-for="ResultItemQuantity" type="number" min="1" max="100" required />
+        </div>
+    </div>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+    <div>
+        <div>
+            <label>Crafting Station:</label>
+            <select asp-for="CraftingStationName" asp-items="Model.AvailableCraftingStations"></select>
+        </div>
+    </div>
+
+    <div>
+        <label>Ingredients</label>
+        <div style="display: flex; flex-direction: row;">
+            <div>
+                <select asp-for="Ingredients[0].ItemId" asp-items="Model.AvailableItems" required></select>
+                <input asp-for="Ingredients[0].Quantity" type="number" min="1" max="10000" required />
+            </div>
+
+            @for (int i = 1; i < 8; i++)
+            {
+                <div>
+                    <select asp-for="Ingredients[i].ItemId" asp-items="Model.AvailableItems"></select>
+                    <input asp-for="Ingredients[i].Quantity" type="number" min="1" max="10000" />
+                    <button type="button">Clear</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button type="submit">Save</button>
+</form>

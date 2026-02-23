@@ -1,18 +1,35 @@
-﻿@model TerrariaDB.Models.Terraria.CraftingStation
+﻿@model TerrariaDB.ViewModels.Terraria.CraftingStation.CraftingStationDetailsViewModel
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Crafting Station Details";
 }
 
-<h1>Details</h1>
+<h1>Crafting Station Details</h1>
 
 <div>
-    <h4>CraftingStation</h4>
-    <hr />
-    <dl class="row">
-    </dl>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.CraftingStationName">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.CraftingStationName">Delete</a>
+    }
+    <a asp-controller="Recipes"
+       asp-action="Index"
+       asp-route-craftingStation="@Model.CraftingStationName">
+        Recipes
+    </a>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.CraftingStationName">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<span>@Model.Name</span>
+
+<span>Represented By Items</span>
+
+<div style="display: flex; flex-direction: row; overflow-x: auto;">
+    @foreach (var item in Model.Items.Take(15))
+    {
+        <div style="display: flex; flex-direction: column;">
+            <img src="@item.Sprite" alt="@item.Name" />
+            <span>@item.Name</span>
+        </div>
+    }
 </div>

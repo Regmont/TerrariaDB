@@ -2,6 +2,11 @@
 
 @{
     ViewData["Title"] = "Recipes";
+
+    var currentResultItem = Context.Request.Query["resultItem"].ToString();
+    var currentIngredient1 = Context.Request.Query["ingredient1"].ToString();
+    var currentIngredient2 = Context.Request.Query["ingredient2"].ToString();
+    var currentCraftingStation = Context.Request.Query["craftingStation"].ToString();
 }
 
 <h1>Recipes</h1>
@@ -15,89 +20,118 @@
 </div>
 
 <div>
-    <table>
-        <thead>
-            <tr>
-                <th>Result Item</th>
-                <th>Ingredients</th>
-                <th>Crafting Station</th>
-                <th>
-                    <button type="button">Clear Filters</button>
-                </th>
-            </tr>
-            <tr>
-                <td>
-                    <div style="display: flex; flex-direction: row;">
-                        <select asp-items="Model.ResultItemFilterOptions"></select>
-                    </div>
-                </td>
-                <td>
-                    <div style="display: flex; flex-direction: row;">
-                        <select asp-items="Model.IngredientFilterOptions"></select>
-                        <select asp-items="Model.IngredientFilterOptions"></select>
-                    </div>
-                </td>
-                <td>
-                    <select asp-items="Model.CraftingStationFilterOptions"></select>
-                </td>
-                <td></td>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var recipe in Model.Recipes)
-            {
+    <form id="filterForm" method="get" action="@Url.Action("Index")">
+        <table>
+            <thead>
+                <tr>
+                    <th>Result Item</th>
+                    <th>Ingredients</th>
+                    <th>Crafting Station</th>
+                    <th>
+                        <button type="submit" form="filterForm">Apply Filters</button>
+                        <a href="@Url.Action("Index")" role="button">Clear Filters</a>
+                    </th>
+                </tr>
                 <tr>
                     <td>
                         <div style="display: flex; flex-direction: row;">
-                            <div style="display: flex; flex-direction: column;">
-                                <img src="@recipe.ResultItem.Sprite" alt="@recipe.ResultItem.Name" />
-                                <span>@recipe.ResultItem.Name</span>
-                                <span>@recipe.ResultItemQuantity</span>
-                            </div>
+                            <select name="resultItem" asp-items="Model.ResultItemFilterOptions" onchange="this.form.submit()">
+                                <option value="">All</option>
+                            </select>
                         </div>
                     </td>
                     <td>
                         <div style="display: flex; flex-direction: row;">
-                            @for (int i = 0; i < 8; i++)
-                            {
-                                if (i < recipe.Ingredients.Count)
-                                {
-                                    <div style="display: flex; flex-direction: column;">
-                                        <img src="@recipe.Ingredients[i].Sprite" alt="@recipe.Ingredients[i].Name" />
-                                        <span>@recipe.Ingredients[i].Name</span>
-                                        <span>@recipe.Ingredients[i].Quantity</span>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div style="display: flex; flex-direction: column;">
-                                        <span>Empty</span>
-                                    </div>
-                                }
-                            }
+                            <select name="ingredient1" asp-items="Model.IngredientFilterOptions" onchange="this.form.submit()">
+                                <option value="">All</option>
+                            </select>
+                            <select name="ingredient2" asp-items="Model.IngredientFilterOptions" onchange="this.form.submit()">
+                                <option value="">All</option>
+                            </select>
                         </div>
                     </td>
                     <td>
-                        @if (recipe.CraftingStation != null)
-                        {
-                            <div style="display: flex; flex-direction: column;">
-                                <img src="@recipe.CraftingStation.Sprite" alt="@recipe.CraftingStation.Name" />
-                                <span>@recipe.CraftingStation.Name</span>
-                            </div>
-                        }
+                        <select name="craftingStation" asp-items="Model.CraftingStationFilterOptions" onchange="this.form.submit()">
+                            <option value="">All</option>
+                        </select>
                     </td>
-                    <td>
-                        <div style="display: flex; flex-direction: row;">
-                            <a asp-action="Details" asp-route-id="@recipe.Id">Details</a>
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <a asp-action="Edit" asp-route-id="@recipe.Id">Edit</a>
-                                <a asp-action="Delete" asp-route-id="@recipe.Id">Delete</a>
-                            }
-                        </div>
-                    </td>
+                    <td></td>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var recipe in Model.Recipes)
+                {
+                    <tr>
+                        <td>
+                            <div style="display: flex; flex-direction: row;">
+                                <div style="display: flex; flex-direction: column;">
+                                    <img src="@recipe.ResultItem.Sprite" alt="@recipe.ResultItem.Name" />
+                                    <span>@recipe.ResultItem.Name</span>
+                                    <span>@recipe.ResultItemQuantity</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: row;">
+                                @for (int i = 0; i < 8; i++)
+                                {
+                                    if (i < recipe.Ingredients.Count)
+                                    {
+                                        <div style="display: flex; flex-direction: column;">
+                                            <img src="@recipe.Ingredients[i].Sprite" alt="@recipe.Ingredients[i].Name" />
+                                            <span>@recipe.Ingredients[i].Name</span>
+                                            <span>@recipe.Ingredients[i].Quantity</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="display: flex; flex-direction: column;">
+                                            <span>Empty</span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            @if (recipe.CraftingStation != null)
+                            {
+                                <div style="display: flex; flex-direction: column;">
+                                    <img src="@recipe.CraftingStation.Sprite" alt="@recipe.CraftingStation.Name" />
+                                    <span>@recipe.CraftingStation.Name</span>
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: row;">
+                                <a asp-action="Details" asp-route-id="@recipe.Id">Details</a>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@recipe.Id">Edit</a>
+                                    <a asp-action="Delete" asp-route-id="@recipe.Id">Delete</a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </form>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const selects = document.querySelectorAll('#filterForm select');
+        selects.forEach(select => {
+            const paramValue = urlParams.get(select.name);
+            if (paramValue) {
+                Array.from(select.options).forEach(option => {
+                    if (option.value === paramValue) {
+                        option.selected = true;
+                    }
+                });
+            }
+        });
+    });
+</script>
