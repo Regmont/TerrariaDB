@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria.Boss;
 
 namespace TerrariaDB.Controllers.Terraria
 {
@@ -22,27 +19,108 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Bosses
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Boss.Include(b => b.SummonItem);
-            return View(await applicationDbContext.ToListAsync());
+            var bosses = await _context.Boss
+                .Select(b => new BossItemViewModel
+                {
+                    Name = b.BossName,
+                    Sprite = b.BossParts
+                        .Select(bp => bp.HostileEntity.Entity.GameObject)
+                        .FirstOrDefault()!.Sprite
+                })
+                .ToListAsync();
+
+            var viewModel = new BossIndexViewModel
+            {
+                Bosses = bosses
+            };
+
+            return View(viewModel);
         }
 
         // GET: Bosses/Details/5
         public async Task<IActionResult> Details(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var boss = await _context.Boss
-                .Include(b => b.SummonItem)
-                .FirstOrDefaultAsync(m => m.BossName == id);
+                .Include(b => b.BossDrops)
+                    .ThenInclude(bd => bd.Item)
+                        .ThenInclude(i => i.GameObject)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.GameObject)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.EntityDrops)
+                                .ThenInclude(ed => ed.Item)
+                                    .ThenInclude(i => i.GameObject)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.BossPartEnemies)
+                        .ThenInclude(bpe => bpe.Enemy)
+                            .ThenInclude(e => e.HostileEntity)
+                                .ThenInclude(he => he.Entity)
+                                    .ThenInclude(en => en.GameObject)
+                .FirstOrDefaultAsync(b => b.BossName == id);
+
             if (boss == null)
             {
                 return NotFound();
             }
 
-            return View(boss);
+            var viewModel = new BossDetailsViewModel
+            {
+                BossName = boss.BossName,
+                Drops = boss.BossDrops.Select(bd => new BossDropViewModel
+                {
+                    Name = bd.Item.GameObject.GameObjectName,
+                    Sprite = bd.Item.GameObject.Sprite,
+                    Quantity = bd.Quantity
+                }).ToList(),
+                BossParts = boss.BossParts.Select(bp => new BossPartViewModel
+                {
+                    Name = bp.HostileEntity.Entity.GameObject.GameObjectName,
+                    Description = bp.HostileEntity.Entity.GameObject.Description ?? string.Empty,
+                    Quantity = bp.Quantity,
+                    Stages = GetStages(bp.HostileEntity.Entity.GameObject, bp)
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        private List<BossStageViewModel> GetStages(GameObject gameObject, BossPart bossPart)
+        {
+            var stages = new List<BossStageViewModel>();
+
+            var current = gameObject;
+            while (current != null)
+            {
+                stages.Add(new BossStageViewModel
+                {
+                    Name = current.GameObjectName,
+                    Sprite = current.Sprite,
+                    EntityId = bossPart.HostileEntity.EntityId.ToString(),
+                    Hp = bossPart.HostileEntity.Entity.Hp ?? 0,
+                    Defense = bossPart.HostileEntity.Entity.Defense,
+                    ContactDamage = bossPart.HostileEntity.ContactDamage,
+                    SummonedEnemies = bossPart.BossPartEnemies.Select(bpe => new BossStageEnemyViewModel
+                    {
+                        Name = bpe.Enemy.HostileEntity.Entity.GameObject.GameObjectName,
+                        Sprite = bpe.Enemy.HostileEntity.Entity.GameObject.Sprite,
+                        Quantity = bpe.Quantity
+                    }).ToList(),
+                    Drops = bossPart.HostileEntity.Entity.EntityDrops.Select(ed => new BossStageDropViewModel
+                    {
+                        Name = ed.Item.GameObject.GameObjectName,
+                        Sprite = ed.Item.GameObject.Sprite,
+                        Quantity = ed.Quantity
+                    }).ToList()
+                });
+
+                current = current.Transform;
+            }
+
+            return stages;
         }
 
         // GET: Bosses/Create
@@ -125,35 +203,108 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Bosses/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var boss = await _context.Boss
-                .Include(b => b.SummonItem)
-                .FirstOrDefaultAsync(m => m.BossName == id);
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.GameObject)
+                .FirstOrDefaultAsync(b => b.BossName == id);
+
             if (boss == null)
             {
                 return NotFound();
             }
 
-            return View(boss);
+            var viewModel = new BossDeleteViewModel
+            {
+                BossName = boss.BossName,
+                Sprite = boss.BossParts
+                    .Select(bp => bp.HostileEntity.Entity.GameObject)
+                    .FirstOrDefault()?.Sprite ?? string.Empty
+            };
+
+            return View(viewModel);
         }
 
         // POST: Bosses/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(string id)
+        public async Task<IActionResult> DeleteConfirmed(BossDeleteViewModel viewModel)
         {
-            var boss = await _context.Boss.FindAsync(id);
-            if (boss != null)
+            var boss = await _context.Boss
+                .Include(b => b.BossDrops)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.BossPartEnemies)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.EntityDrops)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.GameObject)
+                .FirstOrDefaultAsync(b => b.BossName == viewModel.BossName);
+
+            if (boss == null)
             {
-                _context.Boss.Remove(boss);
+                return NotFound();
             }
 
+            _context.BossDrop.RemoveRange(boss.BossDrops);
+
+            var allBossPartEnemies = new List<BossPartEnemies>();
+            var allEntityDrops = new List<EntityDrop>();
+            var allGameObjects = new List<GameObject>();
+
+            foreach (var part in boss.BossParts)
+            {
+                await CollectStageData(part, allBossPartEnemies, allEntityDrops, allGameObjects);
+            }
+
+            _context.BossPartEnemies.RemoveRange(allBossPartEnemies);
+            _context.EntityDrop.RemoveRange(allEntityDrops);
+
+            foreach (var gameObject in allGameObjects)
+            {
+                _context.GameObject.Remove(gameObject);
+            }
+
+            _context.Boss.Remove(boss);
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task CollectStageData(BossPart part,
+            List<BossPartEnemies> bossPartEnemies,
+            List<EntityDrop> entityDrops,
+            List<GameObject> gameObjects)
+        {
+            bossPartEnemies.AddRange(part.BossPartEnemies);
+            entityDrops.AddRange(part.HostileEntity.Entity.EntityDrops);
+
+            var current = part.HostileEntity.Entity.GameObject;
+            while (current != null && !gameObjects.Contains(current))
+            {
+                gameObjects.Add(current);
+
+                var nextGameObject = await _context.GameObject
+                    .Include(go => go.Entity)
+                        .ThenInclude(e => e.EntityDrops)
+                    .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+
+                if (nextGameObject?.Entity != null)
+                {
+                    var nextBossPartEnemies = await _context.BossPartEnemies
+                        .Where(bpe => bpe.Enemy.HostileEntity.EntityId == nextGameObject.Entity.EntityId)
+                        .ToListAsync();
+
+                    bossPartEnemies.AddRange(nextBossPartEnemies);
+                    entityDrops.AddRange(nextGameObject.Entity.EntityDrops);
+                }
+
+                current = nextGameObject;
+            }
         }
 
         private bool BossExists(string id)

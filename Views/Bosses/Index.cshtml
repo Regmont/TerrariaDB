@@ -7,7 +7,7 @@
 <h1>Bosses</h1>
 
 <div>
-    <a asp-action="Index">Back</a>
+    <a asp-action="Index" asp-controller="Home">Back</a>
     @if (User.IsInRole("Admin"))
     {
         <a asp-action="Create">Create</a>
@@ -21,17 +21,17 @@
             <tr>
                 <td>
                     <div style="display: flex; flex-direction: column;">
-                        <img src="@boss.Sprite" alt="@boss.Name" />
+                        <img src="@boss.Sprite"/>
                         <span>@boss.Name</span>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; flex-direction: row;">
-                        <a asp-action="Details" asp-route-id="@boss.Id">Details</a>
+                        <a asp-action="Details" asp-route-id="@boss.Name">Details</a>
                         @if (User.IsInRole("Admin"))
                         {
-                            <a asp-action="Edit" asp-route-id="@boss.Id">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@boss.Id">Delete</a>
+                            <a asp-action="Edit" asp-route-id="@boss.Name">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@boss.Name">Delete</a>
                         }
                     </div>
                 </td>

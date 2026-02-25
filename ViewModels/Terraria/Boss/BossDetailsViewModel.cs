@@ -3,7 +3,6 @@
     public class BossDetailsViewModel
     {
         public string BossName { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
         public List<BossDropViewModel> Drops { get; set; } = new();
         public List<BossPartViewModel> BossParts { get; set; } = new();
     }

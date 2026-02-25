@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria.CraftingStation;
 
 namespace TerrariaDB.Controllers.Terraria
 {
@@ -22,25 +18,48 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: CraftingStations
         public async Task<IActionResult> Index()
         {
-            return View(await _context.CraftingStation.ToListAsync());
+            var stations = await _context.CraftingStation
+                .Select(cs => new CraftingStationItemViewModel
+                {
+                    Name = cs.CraftingStationName,
+                    Sprite = cs.Items
+                        .Select(i => i.GameObject)
+                        .FirstOrDefault(go => go.TransformedFrom == null)!.Sprite
+                })
+                .ToListAsync();
+
+            var viewModel = new CraftingStationIndexViewModel
+            {
+                CraftingStations = stations
+            };
+
+            return View(viewModel);
         }
 
         // GET: CraftingStations/Details/5
         public async Task<IActionResult> Details(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var craftingStation = await _context.CraftingStation
-                .FirstOrDefaultAsync(m => m.CraftingStationName == id);
+                .Include(cs => cs.Items)
+                    .ThenInclude(i => i.GameObject)
+                .FirstOrDefaultAsync(cs => cs.CraftingStationName == id);
+
             if (craftingStation == null)
             {
                 return NotFound();
             }
 
-            return View(craftingStation);
+            var viewModel = new CraftingStationDetailsViewModel
+            {
+                CraftingStationName = craftingStation.CraftingStationName,
+                Items = craftingStation.Items.Select(i => new CraftingStationItemDetailsViewModel
+                {
+                    Name = i.GameObject.GameObjectName,
+                    Sprite = i.GameObject.Sprite
+                }).ToList()
+            };
+
+            return View(viewModel);
         }
 
         // GET: CraftingStations/Create
@@ -119,19 +138,25 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: CraftingStations/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var craftingStation = await _context.CraftingStation
-                .FirstOrDefaultAsync(m => m.CraftingStationName == id);
+                .Include(cs => cs.Items)
+                    .ThenInclude(i => i.GameObject)
+                .Include(cs => cs.Recipes)
+                .FirstOrDefaultAsync(cs => cs.CraftingStationName == id);
+
             if (craftingStation == null)
             {
                 return NotFound();
             }
 
-            return View(craftingStation);
+            var viewModel = new CraftingStationDeleteViewModel
+            {
+                CraftingStationName = craftingStation.CraftingStationName,
+                Sprite = craftingStation.Items.FirstOrDefault()?.GameObject.Sprite ?? string.Empty,
+                HasRelatedRecipes = craftingStation.Recipes.Any()
+            };
+
+            return View(viewModel);
         }
 
         // POST: CraftingStations/Delete/5
@@ -139,13 +164,29 @@ namespace TerrariaDB.Controllers.Terraria
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var craftingStation = await _context.CraftingStation.FindAsync(id);
-            if (craftingStation != null)
+            var craftingStation = await _context.CraftingStation
+                .Include(cs => cs.Items)
+                .Include(cs => cs.Recipes)
+                    .ThenInclude(r => r.RecipeItems)
+                .FirstOrDefaultAsync(cs => cs.CraftingStationName == id);
+
+            if (craftingStation == null)
             {
-                _context.CraftingStation.Remove(craftingStation);
+                return NotFound();
             }
 
+            var allRecipeItems = new List<RecipeItems>();
+            foreach (var recipe in craftingStation.Recipes)
+            {
+                allRecipeItems.AddRange(recipe.RecipeItems);
+            }
+
+            _context.RecipeItems.RemoveRange(allRecipeItems);
+            _context.Recipe.RemoveRange(craftingStation.Recipes);
+            _context.CraftingStation.Remove(craftingStation);
+
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

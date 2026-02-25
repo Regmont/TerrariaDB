@@ -7,7 +7,7 @@
 <h1>Crafting Stations</h1>
 
 <div>
-    <a asp-action="Index">Back</a>
+    <a asp-action="Index" asp-controller="Home">Back</a>
     @if (User.IsInRole("Admin"))
     {
         <a asp-action="Create">Create</a>
@@ -21,17 +21,17 @@
             <tr>
                 <td>
                     <div style="display: flex; flex-direction: column;">
-                        <img src="@station.Sprite" alt="@station.Name" />
+                        <img src="@station.Sprite"/>
                         <span>@station.Name</span>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; flex-direction: row;">
-                        <a asp-action="Details" asp-route-id="@station.Id">Details</a>
+                        <a asp-action="Details" asp-route-id="@station.Name">Details</a>
                         @if (User.IsInRole("Admin"))
                         {
-                            <a asp-action="Edit" asp-route-id="@station.Id">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@station.Id">Delete</a>
+                            <a asp-action="Edit" asp-route-id="@station.Name">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@station.Name">Delete</a>
                         }
                     </div>
                 </td>

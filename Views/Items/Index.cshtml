@@ -7,7 +7,7 @@
 <h1>Items</h1>
 
 <div>
-    <a asp-action="Index">Back</a>
+    <a asp-action="Index" asp-controller="Home">Back</a>
     @if (User.IsInRole("Admin"))
     {
         <a asp-action="Create">Create</a>
@@ -21,7 +21,7 @@
             <tr>
                 <td>
                     <div style="display: flex; flex-direction: column;">
-                        <img src="@item.Sprite" alt="@item.Name" />
+                        <img src="@item.Sprite"/>
                         <span>@item.Name</span>
                     </div>
                 </td>

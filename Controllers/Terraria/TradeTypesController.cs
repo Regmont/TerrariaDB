@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria.TradeType;
 
 namespace TerrariaDB.Controllers.Terraria
 {
@@ -20,9 +17,19 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: TradeTypes
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index()
         {
-            return View(await _context.TradeType.ToListAsync());
+            var tradeTypeNames = await _context.TradeType
+                .Select(tt => tt.TradeTypeName)
+                .ToListAsync();
+
+            var viewModel = new TradeTypeIndexViewModel
+            {
+                TradeTypeNames = tradeTypeNames
+            };
+
+            return View(viewModel);
         }
 
         // GET: TradeTypes/Create
@@ -101,19 +108,22 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: TradeTypes/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var tradeType = await _context.TradeType
-                .FirstOrDefaultAsync(m => m.TradeTypeName == id);
+                .Include(tt => tt.TradeOffers)
+                .FirstOrDefaultAsync(tt => tt.TradeTypeName == id);
+
             if (tradeType == null)
             {
                 return NotFound();
             }
 
-            return View(tradeType);
+            var viewModel = new TradeTypeDeleteViewModel
+            {
+                TradeTypeName = tradeType.TradeTypeName,
+                HasRelatedTrades = tradeType.TradeOffers.Any()
+            };
+
+            return View(viewModel);
         }
 
         // POST: TradeTypes/Delete/5
@@ -121,13 +131,24 @@ namespace TerrariaDB.Controllers.Terraria
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var tradeType = await _context.TradeType.FindAsync(id);
-            if (tradeType != null)
+            var tradeType = await _context.TradeType
+                .Include(tt => tt.TradeOffers)
+                .FirstOrDefaultAsync(tt => tt.TradeTypeName == id);
+
+            if (tradeType == null)
             {
-                _context.TradeType.Remove(tradeType);
+                return NotFound();
             }
 
+            if (tradeType.TradeOffers.Any())
+            {
+                return RedirectToAction(nameof(Delete), new { id });
+            }
+
+            _context.TradeType.Remove(tradeType);
+
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

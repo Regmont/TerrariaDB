@@ -20,7 +20,7 @@
     </a>
 </div>
 
-<span>@Model.Name</span>
+<span>@Model.CraftingStationName</span>
 
 <span>Represented By Items</span>
 
@@ -28,7 +28,7 @@
     @foreach (var item in Model.Items.Take(15))
     {
         <div style="display: flex; flex-direction: column;">
-            <img src="@item.Sprite" alt="@item.Name" />
+            <img src="@item.Sprite"/>
             <span>@item.Name</span>
         </div>
     }

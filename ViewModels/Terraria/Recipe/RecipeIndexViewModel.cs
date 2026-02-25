@@ -21,14 +21,12 @@ namespace TerrariaDB.ViewModels.Terraria.Recipe
 
     public class RecipeItemInfoViewModel
     {
-        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Sprite { get; set; } = string.Empty;
     }
 
     public class RecipeIngredientViewModel
     {
-        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Sprite { get; set; } = string.Empty;
         public int Quantity { get; set; }
@@ -36,7 +34,6 @@ namespace TerrariaDB.ViewModels.Terraria.Recipe
 
     public class RecipeStationViewModel
     {
-        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Sprite { get; set; } = string.Empty;
     }

@@ -23,7 +23,7 @@
     @foreach (var transformation in Model.Transformations.Take(4))
     {
         <div style="display: flex; flex-direction: column;">
-            <img src="@transformation.Sprite" alt="@transformation.Name" />
+            <img src="@transformation.Sprite"/>
             <span>@transformation.Hp</span>
             <span>@transformation.Defense</span>
             <span>@transformation.EntityId</span>
@@ -37,7 +37,7 @@
         @foreach (var drop in Model.Drops.Take(5))
         {
             <div style="display: flex; flex-direction: column;">
-                <img src="@drop.Sprite" alt="@drop.Name" />
+                <img src="@drop.Sprite"/>
                 <span>@drop.Name</span>
                 <span>@drop.Quantity</span>
             </div>
@@ -51,7 +51,7 @@
     @foreach (var trade in Model.Trades.Take(15))
     {
         <div style="display: flex; flex-direction: column;">
-            <img src="@trade.Sprite" alt="@trade.Name" />
+            <img src="@trade.Sprite"/>
             <span>@trade.Name</span>
             <span>@trade.Quantity</span>
             <span>@trade.TotalPrice</span>

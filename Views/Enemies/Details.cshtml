@@ -24,7 +24,7 @@
     {
         <div>
             <div style="display: flex; flex-direction: column;">
-                <img src="@transformation.Sprite" alt="@transformation.Name" />
+                <img src="@transformation.Sprite"/>
                 <span>@transformation.Name</span>
                 <span>@transformation.EntityId</span>
             </div>
@@ -34,7 +34,7 @@
                 @foreach (var item in transformation.Drops.Take(5))
                 {
                     <div style="display: flex; flex-direction: column;">
-                        <img src="@item.Sprite" alt="@item.Name" />
+                        <img src="@item.Sprite"/>
                         <span>@item.Name</span>
                         <span>@item.Quantity</span>
                     </div>

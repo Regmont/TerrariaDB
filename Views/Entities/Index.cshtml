@@ -7,7 +7,7 @@
 <h1>Entities</h1>
 
 <div>
-    <a asp-action="Index">Back</a>
+    <a asp-action="Index" asp-controller="Home">Back</a>
 </div>
 
 <div>
@@ -17,17 +17,38 @@
             <tr>
                 <td>
                     <div style="display: flex; flex-direction: column;">
-                        <img src="@entity.Sprite" alt="@entity.Name" />
-                        <span>@entity.Name</span>
+                        <img src="@entity.Sprite"/>
+                        <span>@entity.Name (Game ID: @entity.Id)</span>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; flex-direction: row;">
-                        <a asp-action="Details" asp-route-id="@entity.Id">Details</a>
-                        @if (User.IsInRole("Admin"))
+                        @if (entity.Type == "BossPart")
                         {
-                            <a asp-action="Edit" asp-route-id="@entity.Id">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@entity.Id">Delete</a>
+                            <a asp-controller="Boss" asp-action="Details" asp-route-id="@entity.TypeId">Details</a>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="Boss" asp-action="Edit" asp-route-id="@entity.TypeId">Edit</a>
+                                <a asp-controller="Boss" asp-action="Delete" asp-route-id="@entity.TypeId">Delete</a>
+                            }
+                        }
+                        else if (entity.Type == "Enemy")
+                        {
+                            <a asp-controller="Enemy" asp-action="Details" asp-route-id="@entity.TypeId">Details</a>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="Enemy" asp-action="Edit" asp-route-id="@entity.TypeId">Edit</a>
+                                <a asp-controller="Enemy" asp-action="Delete" asp-route-id="@entity.TypeId">Delete</a>
+                            }
+                        }
+                        else if (entity.Type == "TownNpc")
+                        {
+                            <a asp-controller="TownNpc" asp-action="Details" asp-route-id="@entity.TypeId">Details</a>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="TownNpc" asp-action="Edit" asp-route-id="@entity.TypeId">Edit</a>
+                                <a asp-controller="TownNpc" asp-action="Delete" asp-route-id="@entity.TypeId">Delete</a>
+                            }
                         }
                     </div>
                 </td>

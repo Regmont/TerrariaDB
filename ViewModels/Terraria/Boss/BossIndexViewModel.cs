@@ -7,7 +7,6 @@
 
     public class BossItemViewModel
     {
-        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Sprite { get; set; } = string.Empty;
     }

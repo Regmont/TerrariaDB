@@ -3,7 +3,6 @@
     public class CraftingStationDetailsViewModel
     {
         public string CraftingStationName { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
         public List<CraftingStationItemDetailsViewModel> Items { get; set; } = new();
     }
 

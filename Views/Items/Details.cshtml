@@ -33,7 +33,7 @@
 {
     <span>Summoned boss</span>
     <div style="display: flex; flex-direction: column;">
-        <img src="@Model.SummonedBossSprite" alt="@Model.SummonedBossName" />
+        <img src="@Model.SummonedBossSprite"/>
         <span>@Model.SummonedBossName</span>
     </div>
 }
@@ -47,7 +47,7 @@
 <div style="display: flex; flex-direction: row;">
     @foreach (var transformation in Model.Transformations.Take(4))
     {
-        <img src="@transformation.Sprite" alt="@transformation.Name" />
+        <img src="@transformation.Sprite"/>
     }
 </div>
 
@@ -58,7 +58,7 @@
         @foreach (var boss in Model.DroppedFromBosses.Take(3))
         {
             <div style="display: flex; flex-direction: column;">
-                <img src="@boss.Sprite" alt="@boss.Name" />
+                <img src="@boss.Sprite"/>
                 <span>@boss.Name</span>
             </div>
         }
@@ -72,7 +72,7 @@
         @foreach (var entity in Model.DroppedFromEntities.Take(15))
         {
             <div style="display: flex; flex-direction: column;">
-                <img src="@entity.Sprite" alt="@entity.Name" />
+                <img src="@entity.Sprite"/>
                 <span>@entity.Name</span>
             </div>
         }
@@ -86,7 +86,7 @@
         @foreach (var npc in Model.TradedByNpcs.Take(3))
         {
             <div style="display: flex; flex-direction: column;">
-                <img src="@npc.Sprite" alt="@npc.Name" />
+                <img src="@npc.Sprite"/>
                 <span>@npc.Name</span>
                 <span>@npc.Quantity</span>
                 <span>@npc.TotalPrice</span>

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria.Enemy;
 
 namespace TerrariaDB.Controllers.Terraria
 {
@@ -22,27 +19,92 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Enemies
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Enemy.Include(e => e.HostileEntity);
-            return View(await applicationDbContext.ToListAsync());
+            var enemies = await _context.Enemy
+                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+                .Select(e => new EnemyItemViewModel
+                {
+                    Id = e.EnemyId.ToString(),
+                    Name = e.HostileEntity.Entity.GameObject.GameObjectName,
+                    Sprite = e.HostileEntity.Entity.GameObject.Sprite
+                })
+                .ToListAsync();
+
+            var viewModel = new EnemyIndexViewModel
+            {
+                Enemies = enemies
+            };
+
+            return View(viewModel);
         }
 
         // GET: Enemies/Details/5
-        public async Task<IActionResult> Details(short? id)
+        public async Task<IActionResult> Details(short id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var enemy = await _context.Enemy
                 .Include(e => e.HostileEntity)
-                .FirstOrDefaultAsync(m => m.EnemyId == id);
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.GameObject)
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.EntityDrops)
+                            .ThenInclude(ed => ed.Item)
+                                .ThenInclude(i => i.GameObject)
+                .FirstOrDefaultAsync(e => e.EnemyId == id);
+
             if (enemy == null)
             {
                 return NotFound();
             }
 
-            return View(enemy);
+            var viewModel = new EnemyDetailsViewModel
+            {
+                EnemyId = enemy.EnemyId.ToString(),
+                Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
+                Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty,
+                Sprite = enemy.HostileEntity.Entity.GameObject.Sprite,
+                EntityId = enemy.HostileEntity.EntityId.ToString(),
+                Hp = enemy.HostileEntity.Entity.Hp ?? 0,
+                Defense = enemy.HostileEntity.Entity.Defense,
+                ContactDamage = enemy.HostileEntity.ContactDamage,
+                Drops = enemy.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
+                {
+                    Name = ed.Item.GameObject.GameObjectName,
+                    Sprite = ed.Item.GameObject.Sprite,
+                    Quantity = ed.Quantity
+                }).ToList(),
+                Transformations = GetTransformations(enemy.HostileEntity.Entity.GameObject, enemy)
+            };
+
+            return View(viewModel);
+        }
+
+        private List<EnemyTransformationViewModel> GetTransformations(GameObject gameObject, Enemy enemy)
+        {
+            var transformations = new List<EnemyTransformationViewModel>();
+
+            var current = gameObject.Transform;
+            while (current != null)
+            {
+                transformations.Add(new EnemyTransformationViewModel
+                {
+                    Name = current.GameObjectName,
+                    Sprite = current.Sprite,
+                    EntityId = enemy.HostileEntity.EntityId.ToString(),
+                    Hp = enemy.HostileEntity.Entity.Hp ?? 0,
+                    Defense = enemy.HostileEntity.Entity.Defense,
+                    ContactDamage = enemy.HostileEntity.ContactDamage,
+                    Drops = enemy.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
+                    {
+                        Name = ed.Item.GameObject.GameObjectName,
+                        Sprite = ed.Item.GameObject.Sprite,
+                        Quantity = ed.Quantity
+                    }).ToList()
+                });
+
+                current = current.Transform;
+            }
+
+            return transformations;
         }
 
         // GET: Enemies/Create
@@ -123,22 +185,27 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Enemies/Delete/5
-        public async Task<IActionResult> Delete(short? id)
+        public async Task<IActionResult> Delete(short id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var enemy = await _context.Enemy
                 .Include(e => e.HostileEntity)
-                .FirstOrDefaultAsync(m => m.EnemyId == id);
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.GameObject)
+                .FirstOrDefaultAsync(e => e.EnemyId == id);
+
             if (enemy == null)
             {
                 return NotFound();
             }
 
-            return View(enemy);
+            var viewModel = new EnemyDeleteViewModel
+            {
+                EnemyId = enemy.EnemyId.ToString(),
+                Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
+                Sprite = enemy.HostileEntity.Entity.GameObject.Sprite
+            };
+
+            return View(viewModel);
         }
 
         // POST: Enemies/Delete/5
@@ -146,14 +213,67 @@ namespace TerrariaDB.Controllers.Terraria
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
-            var enemy = await _context.Enemy.FindAsync(id);
-            if (enemy != null)
+            var enemy = await _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.GameObject)
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.EntityDrops)
+                .Include(e => e.BossPartEnemies)
+                .FirstOrDefaultAsync(e => e.EnemyId == id);
+
+            if (enemy == null)
             {
-                _context.Enemy.Remove(enemy);
+                return NotFound();
+            }
+
+            var allBossPartEnemies = new List<BossPartEnemies>();
+            var allEntityDrops = new List<EntityDrop>();
+            var allGameObjects = new List<GameObject>();
+
+            await CollectEnemyData(enemy, allBossPartEnemies, allEntityDrops, allGameObjects);
+
+            _context.BossPartEnemies.RemoveRange(allBossPartEnemies);
+            _context.EntityDrop.RemoveRange(allEntityDrops);
+
+            foreach (var go in allGameObjects)
+            {
+                _context.GameObject.Remove(go);
             }
 
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task CollectEnemyData(Enemy enemy,
+            List<BossPartEnemies> bossPartEnemies,
+            List<EntityDrop> entityDrops,
+            List<GameObject> gameObjects)
+        {
+            var current = enemy.HostileEntity.Entity.GameObject;
+
+            while (current != null && !gameObjects.Contains(current))
+            {
+                gameObjects.Add(current);
+
+                var enemyAtStage = await _context.Enemy
+                    .Include(e => e.BossPartEnemies)
+                    .Include(e => e.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(en => en.EntityDrops)
+                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
+
+                if (enemyAtStage != null)
+                {
+                    bossPartEnemies.AddRange(enemyAtStage.BossPartEnemies);
+                    entityDrops.AddRange(enemyAtStage.HostileEntity.Entity.EntityDrops);
+                }
+
+                current = await _context.GameObject
+                    .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+            }
         }
 
         private bool EnemyExists(short id)

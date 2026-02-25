@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria.CurrencyType;
 
 namespace TerrariaDB.Controllers.Terraria
 {
@@ -20,9 +17,19 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: CurrencyTypes
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index()
         {
-            return View(await _context.CurrencyType.ToListAsync());
+            var currencyNames = await _context.CurrencyType
+                .Select(ct => ct.CurrencyName)
+                .ToListAsync();
+
+            var viewModel = new CurrencyTypeIndexViewModel
+            {
+                CurrencyNames = currencyNames
+            };
+
+            return View(viewModel);
         }
 
         // GET: CurrencyTypes/Create
@@ -101,19 +108,22 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: CurrencyTypes/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var currencyType = await _context.CurrencyType
-                .FirstOrDefaultAsync(m => m.CurrencyName == id);
+                .Include(ct => ct.Items)
+                .FirstOrDefaultAsync(ct => ct.CurrencyName == id);
+
             if (currencyType == null)
             {
                 return NotFound();
             }
 
-            return View(currencyType);
+            var viewModel = new CurrencyTypeDeleteViewModel
+            {
+                CurrencyName = currencyType.CurrencyName,
+                HasRelatedItems = currencyType.Items.Any()
+            };
+
+            return View(viewModel);
         }
 
         // POST: CurrencyTypes/Delete/5
@@ -121,13 +131,24 @@ namespace TerrariaDB.Controllers.Terraria
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var currencyType = await _context.CurrencyType.FindAsync(id);
-            if (currencyType != null)
+            var currencyType = await _context.CurrencyType
+                .Include(ct => ct.Items)
+                .FirstOrDefaultAsync(ct => ct.CurrencyName == id);
+
+            if (currencyType == null)
             {
-                _context.CurrencyType.Remove(currencyType);
+                return NotFound();
             }
 
+            if (currencyType.Items.Any())
+            {
+                return RedirectToAction(nameof(Delete), new { id });
+            }
+
+            _context.CurrencyType.Remove(currencyType);
+
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

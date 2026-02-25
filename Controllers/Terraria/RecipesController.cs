@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
+using TerrariaDB.ViewModels.Terraria.Recipe;
 
 namespace TerrariaDB.Controllers.Terraria
 {
@@ -20,10 +17,99 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Recipes
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string resultItem, string ingredient1, string ingredient2, string craftingStation)
         {
-            var applicationDbContext = _context.Recipe.Include(r => r.CraftingStation).Include(r => r.ResultItem);
-            return View(await applicationDbContext.ToListAsync());
+            var query = _context.Recipe
+                .Include(r => r.ResultItem)
+                    .ThenInclude(i => i.GameObject)
+                .Include(r => r.RecipeItems)
+                    .ThenInclude(ri => ri.Item)
+                        .ThenInclude(i => i.GameObject)
+                .Include(r => r.CraftingStation)
+                    .ThenInclude(cs => cs.Items)
+                        .ThenInclude(i => i.GameObject)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(resultItem))
+            {
+                query = query.Where(r => r.ResultItem.GameObject.GameObjectName == resultItem);
+            }
+
+            if (!string.IsNullOrEmpty(ingredient1) || !string.IsNullOrEmpty(ingredient2))
+            {
+                var ingredients = new[] { ingredient1, ingredient2 }.Where(i => !string.IsNullOrEmpty(i)).ToList();
+                foreach (var ingredient in ingredients)
+                {
+                    query = query.Where(r => r.RecipeItems.Any(ri => ri.Item.GameObject.GameObjectName == ingredient));
+                }
+            }
+
+            if (!string.IsNullOrEmpty(craftingStation))
+            {
+                query = query.Where(r => r.CraftingStation!.CraftingStationName == craftingStation);
+            }
+
+            var recipes = await query
+                .Select(r => new RecipeItemViewModel
+                {
+                    Id = r.RecipeId.ToString(),
+                    ResultItem = new RecipeItemInfoViewModel
+                    {
+                        Name = r.ResultItem.GameObject.GameObjectName,
+                        Sprite = r.ResultItem.GameObject.Sprite
+                    },
+                    ResultItemQuantity = r.ResultItemQuantity,
+                    Ingredients = r.RecipeItems.Select(ri => new RecipeIngredientViewModel
+                    {
+                        Name = ri.Item.GameObject.GameObjectName,
+                        Sprite = ri.Item.GameObject.Sprite,
+                        Quantity = ri.Quantity
+                    }).ToList(),
+                    CraftingStation = r.CraftingStation != null ? new RecipeStationViewModel
+                    {
+                        Name = r.CraftingStation.CraftingStationName,
+                        Sprite = r.CraftingStation.Items.FirstOrDefault()!.GameObject.Sprite
+                    } : null
+                })
+                .ToListAsync();
+
+            var resultItemOptions = await _context.Item
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.GameObject.GameObjectName,
+                    Text = i.GameObject.GameObjectName
+                })
+                .Distinct()
+                .ToListAsync();
+
+            var ingredientOptions = await _context.Item
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.GameObject.GameObjectName,
+                    Text = i.GameObject.GameObjectName
+                })
+                .Distinct()
+                .ToListAsync();
+
+            var stationOptions = await _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToListAsync();
+
+            var viewModel = new RecipeIndexViewModel
+            {
+                Recipes = recipes,
+                ResultItemFilterOptions = resultItemOptions,
+                IngredientFilterOptions = ingredientOptions,
+                CraftingStationFilterOptions = stationOptions
+            };
+
+            return View(viewModel);
         }
 
         // GET: Recipes/Create
@@ -108,23 +194,22 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Recipes/Delete/5
-        public async Task<IActionResult> Delete(short? id)
+        public async Task<IActionResult> Delete(short id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var recipe = await _context.Recipe
-                .Include(r => r.CraftingStation)
-                .Include(r => r.ResultItem)
-                .FirstOrDefaultAsync(m => m.RecipeId == id);
+                .FirstOrDefaultAsync(r => r.RecipeId == id);
+
             if (recipe == null)
             {
                 return NotFound();
             }
 
-            return View(recipe);
+            var viewModel = new RecipeDeleteViewModel
+            {
+                RecipeId = recipe.RecipeId.ToString()
+            };
+
+            return View(viewModel);
         }
 
         // POST: Recipes/Delete/5
@@ -132,13 +217,20 @@ namespace TerrariaDB.Controllers.Terraria
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
-            var recipe = await _context.Recipe.FindAsync(id);
-            if (recipe != null)
+            var recipe = await _context.Recipe
+                .Include(r => r.RecipeItems)
+                .FirstOrDefaultAsync(r => r.RecipeId == id);
+
+            if (recipe == null)
             {
-                _context.Recipe.Remove(recipe);
+                return NotFound();
             }
 
+            _context.RecipeItems.RemoveRange(recipe.RecipeItems);
+            _context.Recipe.Remove(recipe);
+
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

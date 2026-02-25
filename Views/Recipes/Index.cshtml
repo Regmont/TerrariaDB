@@ -12,7 +12,7 @@
 <h1>Recipes</h1>
 
 <div>
-    <a asp-action="Index">Back</a>
+    <a asp-action="Index" asp-controller="Home">Back</a>
     @if (User.IsInRole("Admin"))
     {
         <a asp-action="Create">Create</a>
@@ -28,7 +28,6 @@
                     <th>Ingredients</th>
                     <th>Crafting Station</th>
                     <th>
-                        <button type="submit" form="filterForm">Apply Filters</button>
                         <a href="@Url.Action("Index")" role="button">Clear Filters</a>
                     </th>
                 </tr>
@@ -73,22 +72,13 @@
                         </td>
                         <td>
                             <div style="display: flex; flex-direction: row;">
-                                @for (int i = 0; i < 8; i++)
+                                @foreach (var ingredient in recipe.Ingredients)
                                 {
-                                    if (i < recipe.Ingredients.Count)
-                                    {
-                                        <div style="display: flex; flex-direction: column;">
-                                            <img src="@recipe.Ingredients[i].Sprite" alt="@recipe.Ingredients[i].Name" />
-                                            <span>@recipe.Ingredients[i].Name</span>
-                                            <span>@recipe.Ingredients[i].Quantity</span>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div style="display: flex; flex-direction: column;">
-                                            <span>Empty</span>
-                                        </div>
-                                    }
+                                    <div style="display: flex; flex-direction: column;">
+                                        <img src="@ingredient.Sprite" alt="@ingredient.Name" />
+                                        <span>@ingredient.Name</span>
+                                        <span>@ingredient.Quantity</span>
+                                    </div>
                                 }
                             </div>
                         </td>
@@ -122,6 +112,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         const urlParams = new URLSearchParams(window.location.search);
 
+        if (urlParams.toString() === '') {
+            return;
+        }
+
         const selects = document.querySelectorAll('#filterForm select');
         selects.forEach(select => {
             const paramValue = urlParams.get(select.name);
@@ -131,6 +125,8 @@
                         option.selected = true;
                     }
                 });
+            } else {
+                select.value = '';
             }
         });
     });
