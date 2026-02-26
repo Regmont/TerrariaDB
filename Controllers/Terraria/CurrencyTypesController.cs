@@ -7,6 +7,7 @@ using TerrariaDB.ViewModels.Terraria.CurrencyType;
 
 namespace TerrariaDB.Controllers.Terraria
 {
+    [Authorize(Roles = "Admin")]
     public class CurrencyTypesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,7 +18,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: CurrencyTypes
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index()
         {
             var currencyNames = await _context.CurrencyType
@@ -44,15 +44,26 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("CurrencyName")] CurrencyType currencyType)
+        public async Task<IActionResult> Create(CurrencyTypeCreateViewModel viewModel)
         {
             if (ModelState.IsValid)
             {
+                if (await _context.CurrencyType.AnyAsync(ct => ct.CurrencyName == viewModel.CurrencyName))
+                {
+                    ModelState.AddModelError("CurrencyName", "A currency type with this name already exists");
+                    return View(viewModel);
+                }
+
+                var currencyType = new CurrencyType
+                {
+                    CurrencyName = viewModel.CurrencyName
+                };
+
                 _context.Add(currencyType);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(currencyType);
+            return View(viewModel);
         }
 
         // GET: CurrencyTypes/Edit/5
@@ -72,15 +83,26 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("CurrencyName")] CurrencyType currencyType)
+        public async Task<IActionResult> Edit(CurrencyTypeEditViewModel viewModel)
         {
-            if (id != currencyType.CurrencyName)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
+                var currencyType = await _context.CurrencyType.FindAsync(viewModel.OriginalCurrencyName);
+
+                if (currencyType == null)
+                {
+                    return NotFound();
+                }
+
+                if (viewModel.OriginalCurrencyName != viewModel.CurrencyName &&
+                    await _context.CurrencyType.AnyAsync(ct => ct.CurrencyName == viewModel.CurrencyName))
+                {
+                    ModelState.AddModelError("CurrencyName", "A currency type with this name already exists");
+                    return View(viewModel);
+                }
+
+                currencyType.CurrencyName = viewModel.CurrencyName;
+
                 try
                 {
                     _context.Update(currencyType);
@@ -88,18 +110,15 @@ namespace TerrariaDB.Controllers.Terraria
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CurrencyTypeExists(currencyType.CurrencyName))
+                    if (!CurrencyTypeExists(viewModel.OriginalCurrencyName))
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(currencyType);
+            return View(viewModel);
         }
 
         // GET: CurrencyTypes/Delete/5

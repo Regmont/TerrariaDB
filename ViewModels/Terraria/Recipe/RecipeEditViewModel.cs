@@ -6,7 +6,7 @@ namespace TerrariaDB.ViewModels.Terraria.Recipe
     {
         public string RecipeId { get; set; } = string.Empty;
         public string ResultItemId { get; set; } = string.Empty;
-        public int ResultItemQuantity { get; set; }
+        public short ResultItemQuantity { get; set; }
         public string? CraftingStationName { get; set; }
         public List<RecipeEditIngredientViewModel> Ingredients { get; set; } = new();
         public List<SelectListItem> AvailableItems { get; set; } = new();

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
@@ -137,6 +138,7 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Items/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             var viewModel = new ItemCreateViewModel();
@@ -180,21 +182,117 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ItemId,GameObjectName,CraftingStationName,BasePrice,CurrencyName")] Item item)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(ItemCreateViewModel viewModel)
         {
+            viewModel.AvailableCurrencies = _context.CurrencyType
+                .Select(ct => new SelectListItem
+                {
+                    Value = ct.CurrencyName,
+                    Text = ct.CurrencyName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
             if (ModelState.IsValid)
             {
-                _context.Add(item);
-                await _context.SaveChangesAsync();
+                if (await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
+                {
+                    ModelState.AddModelError("Name", "An item with this name already exists");
+                    return View(viewModel);
+                }
+
+                if (await _context.GameObject.AnyAsync(go => go.Sprite == viewModel.StageItemIds[0]))
+                {
+                    ModelState.AddModelError("StageItemIds[0]", "An item with this sprite already exists");
+                    return View(viewModel);
+                }
+
+                var validStages = viewModel.StageItemIds
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Select(id => short.Parse(id))
+                    .ToList();
+
+                if (!validStages.Any())
+                {
+                    ModelState.AddModelError("", "At least one stage must be selected");
+                    return View(viewModel);
+                }
+
+                GameObject? previousGameObject = null;
+
+                for (int i = 0; i < validStages.Count; i++)
+                {
+                    var stageItemId = validStages[i];
+                    var stageItem = await _context.Item
+                        .Include(i => i.GameObject)
+                        .FirstOrDefaultAsync(i => i.ItemId == stageItemId);
+
+                    if (stageItem == null)
+                    {
+                        ModelState.AddModelError("", $"Item with ID {stageItemId} not found");
+                        return View(viewModel);
+                    }
+
+                    var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+
+                    if (await _context.GameObject.AnyAsync(go => go.GameObjectName == gameObjectName))
+                    {
+                        ModelState.AddModelError("", $"Game object with name '{gameObjectName}' already exists");
+                        return View(viewModel);
+                    }
+
+                    var gameObject = new GameObject
+                    {
+                        GameObjectName = gameObjectName,
+                        Description = i == 0 ? viewModel.Description : null,
+                        Sprite = stageItem.GameObject.Sprite,
+                        TransformName = previousGameObject?.GameObjectName
+                    };
+
+                    _context.GameObject.Add(gameObject);
+                    await _context.SaveChangesAsync();
+
+                    var item = new Item
+                    {
+                        ItemId = stageItem.ItemId,
+                        GameObjectName = gameObject.GameObjectName,
+                        BasePrice = i == 0 ? viewModel.BasePrice : stageItem.BasePrice,
+                        CurrencyName = i == 0 ? viewModel.CurrencyName : stageItem.CurrencyName,
+                        CraftingStationName = i == 0 ? viewModel.CraftingStationName : stageItem.CraftingStationName
+                    };
+
+                    _context.Item.Update(item);
+                    await _context.SaveChangesAsync();
+
+                    previousGameObject = gameObject;
+                }
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName", item.CraftingStationName);
-            ViewData["CurrencyName"] = new SelectList(_context.CurrencyType, "CurrencyName", "CurrencyName", item.CurrencyName);
-            ViewData["GameObjectName"] = new SelectList(_context.GameObject, "GameObjectName", "GameObjectName", item.GameObjectName);
-            return View(item);
+
+            return View(viewModel);
         }
 
         // GET: Items/Edit/5
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
             var item = _context.Item
@@ -269,40 +367,135 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(short id, [Bind("ItemId,GameObjectName,CraftingStationName,BasePrice,CurrencyName")] Item item)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(ItemEditViewModel viewModel)
         {
-            if (id != item.ItemId)
-            {
-                return NotFound();
-            }
+            viewModel.AvailableCurrencies = _context.CurrencyType
+                .Select(ct => new SelectListItem
+                {
+                    Value = ct.CurrencyName,
+                    Text = ct.CurrencyName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
 
             if (ModelState.IsValid)
             {
-                try
+                var originalItem = await _context.Item
+                    .Include(i => i.GameObject)
+                    .FirstOrDefaultAsync(i => i.ItemId == short.Parse(viewModel.ItemId));
+
+                if (originalItem == null)
                 {
-                    _context.Update(item);
+                    return NotFound();
+                }
+
+                var existingGameObjects = new List<GameObject>();
+                var current = originalItem.GameObject;
+                while (current != null)
+                {
+                    existingGameObjects.Add(current);
+                    current = await _context.GameObject
+                        .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+                }
+
+                if (originalItem.GameObject.GameObjectName != viewModel.Name &&
+                    await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
+                {
+                    ModelState.AddModelError("Name", "An item with this name already exists");
+                    return View(viewModel);
+                }
+
+                var validStages = viewModel.StageItemIds
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Select(id => short.Parse(id))
+                    .ToList();
+
+                if (!validStages.Any())
+                {
+                    ModelState.AddModelError("", "At least one stage must be selected");
+                    return View(viewModel);
+                }
+
+                GameObject? previousGameObject = null;
+
+                foreach (var go in existingGameObjects)
+                {
+                    var item = await _context.Item.FirstOrDefaultAsync(i => i.GameObjectName == go.GameObjectName);
+                    if (item != null)
+                    {
+                        _context.Item.Remove(item);
+                    }
+                    _context.GameObject.Remove(go);
+                }
+                await _context.SaveChangesAsync();
+
+                for (int i = 0; i < validStages.Count; i++)
+                {
+                    var stageItemId = validStages[i];
+                    var stageItem = await _context.Item
+                        .Include(i => i.GameObject)
+                        .FirstOrDefaultAsync(i => i.ItemId == stageItemId);
+
+                    if (stageItem == null)
+                    {
+                        ModelState.AddModelError("", $"Item with ID {stageItemId} not found");
+                        return View(viewModel);
+                    }
+
+                    var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+
+                    var gameObject = new GameObject
+                    {
+                        GameObjectName = gameObjectName,
+                        Description = i == 0 ? viewModel.Description : null,
+                        Sprite = stageItem.GameObject.Sprite,
+                        TransformName = previousGameObject?.GameObjectName
+                    };
+
+                    _context.GameObject.Add(gameObject);
                     await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ItemExists(item.ItemId))
+
+                    var item = new Item
                     {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                        ItemId = stageItem.ItemId,
+                        GameObjectName = gameObject.GameObjectName,
+                        BasePrice = i == 0 ? viewModel.BasePrice : stageItem.BasePrice,
+                        CurrencyName = i == 0 ? viewModel.CurrencyName : stageItem.CurrencyName,
+                        CraftingStationName = i == 0 ? viewModel.CraftingStationName : stageItem.CraftingStationName
+                    };
+
+                    _context.Item.Update(item);
+                    await _context.SaveChangesAsync();
+
+                    previousGameObject = gameObject;
                 }
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName", item.CraftingStationName);
-            ViewData["CurrencyName"] = new SelectList(_context.CurrencyType, "CurrencyName", "CurrencyName", item.CurrencyName);
-            ViewData["GameObjectName"] = new SelectList(_context.GameObject, "GameObjectName", "GameObjectName", item.GameObjectName);
-            return View(item);
+
+            return View(viewModel);
         }
 
         // GET: Items/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(short id)
         {
             var item = await _context.Item
@@ -333,6 +526,7 @@ namespace TerrariaDB.Controllers.Terraria
         // POST: Items/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
             var item = await _context.Item
@@ -420,11 +614,6 @@ namespace TerrariaDB.Controllers.Terraria
                 current = await _context.GameObject
                     .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
             }
-        }
-
-        private bool ItemExists(short id)
-        {
-            return _context.Item.Any(e => e.ItemId == id);
         }
     }
 }

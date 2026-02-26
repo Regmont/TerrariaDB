@@ -32,7 +32,7 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
         public string Sprite { get; set; } = string.Empty;
         public int Hp { get; set; }
         public int Defense { get; set; }
-        public int EntityId { get; set; }
+        public short EntityId { get; set; }
         public int ContactDamage { get; set; }
         public List<BossStageEnemyEditViewModel> SpawnedEnemies { get; set; } = new();
         public List<BossStageDropEditViewModel> Drops { get; set; } = new();

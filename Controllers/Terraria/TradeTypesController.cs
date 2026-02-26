@@ -7,6 +7,7 @@ using TerrariaDB.ViewModels.Terraria.TradeType;
 
 namespace TerrariaDB.Controllers.Terraria
 {
+    [Authorize(Roles = "Admin")]
     public class TradeTypesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,7 +18,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: TradeTypes
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index()
         {
             var tradeTypeNames = await _context.TradeType
@@ -44,15 +44,26 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("TradeTypeName")] TradeType tradeType)
+        public async Task<IActionResult> Create(TradeTypeCreateViewModel viewModel)
         {
             if (ModelState.IsValid)
             {
+                if (await _context.TradeType.AnyAsync(tt => tt.TradeTypeName == viewModel.TradeTypeName))
+                {
+                    ModelState.AddModelError("TradeTypeName", "A trade type with this name already exists");
+                    return View(viewModel);
+                }
+
+                var tradeType = new TradeType
+                {
+                    TradeTypeName = viewModel.TradeTypeName
+                };
+
                 _context.Add(tradeType);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(tradeType);
+            return View(viewModel);
         }
 
         // GET: TradeTypes/Edit/5
@@ -72,15 +83,26 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("TradeTypeName")] TradeType tradeType)
+        public async Task<IActionResult> Edit(TradeTypeEditViewModel viewModel)
         {
-            if (id != tradeType.TradeTypeName)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
+                var tradeType = await _context.TradeType.FindAsync(viewModel.OriginalTradeTypeName);
+
+                if (tradeType == null)
+                {
+                    return NotFound();
+                }
+
+                if (viewModel.OriginalTradeTypeName != viewModel.TradeTypeName &&
+                    await _context.TradeType.AnyAsync(tt => tt.TradeTypeName == viewModel.TradeTypeName))
+                {
+                    ModelState.AddModelError("TradeTypeName", "A trade type with this name already exists");
+                    return View(viewModel);
+                }
+
+                tradeType.TradeTypeName = viewModel.TradeTypeName;
+
                 try
                 {
                     _context.Update(tradeType);
@@ -88,18 +110,15 @@ namespace TerrariaDB.Controllers.Terraria
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!TradeTypeExists(tradeType.TradeTypeName))
+                    if (!TradeTypeExists(viewModel.OriginalTradeTypeName))
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(tradeType);
+            return View(viewModel);
         }
 
         // GET: TradeTypes/Delete/5

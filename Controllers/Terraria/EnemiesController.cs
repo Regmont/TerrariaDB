@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
@@ -108,6 +109,7 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Enemies/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             var viewModel = new EnemyCreateViewModel();
@@ -142,19 +144,135 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("EnemyId,HostileEntityId")] Enemy enemy)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(EnemyCreateViewModel viewModel)
         {
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
             if (ModelState.IsValid)
             {
-                _context.Add(enemy);
+                var allEntityIds = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select(s => s.EntityId)
+                    .ToList();
+
+                if (allEntityIds.Count != allEntityIds.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Entity IDs must be unique across all stages");
+                    return View(viewModel);
+                }
+
+                var allGameObjectNames = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
+                    .ToList();
+
+                foreach (var name in allGameObjectNames)
+                {
+                    if (await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                    {
+                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                var allSprites = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select(s => s.Sprite)
+                    .ToList();
+
+                foreach (var sprite in allSprites)
+                {
+                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                    {
+                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                GameObject? previousGameObject = null;
+                Entity? previousEntity = null;
+
+                for (int i = 0; i < viewModel.Stages.Count; i++)
+                {
+                    var stage = viewModel.Stages[i];
+
+                    if (string.IsNullOrEmpty(stage.Sprite))
+                        continue;
+
+                    var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+
+                    var gameObject = new GameObject
+                    {
+                        GameObjectName = gameObjectName,
+                        Description = i == 0 ? viewModel.Description : null,
+                        Sprite = stage.Sprite,
+                        TransformName = previousGameObject?.GameObjectName
+                    };
+
+                    _context.GameObject.Add(gameObject);
+                    await _context.SaveChangesAsync();
+
+                    var entity = new Entity
+                    {
+                        EntityId = stage.EntityId,
+                        GameObjectName = gameObject.GameObjectName,
+                        Hp = stage.Hp,
+                        Defense = (short)stage.Defense
+                    };
+
+                    _context.Entity.Add(entity);
+                    await _context.SaveChangesAsync();
+
+                    var hostileEntity = new HostileEntity
+                    {
+                        EntityId = entity.EntityId,
+                        ContactDamage = (short)stage.ContactDamage
+                    };
+
+                    _context.HostileEntity.Add(hostileEntity);
+                    await _context.SaveChangesAsync();
+
+                    var enemy = new Enemy
+                    {
+                        HostileEntityId = hostileEntity.HostileEntityId
+                    };
+
+                    _context.Enemy.Add(enemy);
+                    await _context.SaveChangesAsync();
+
+                    foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                    {
+                        var entityDrop = new EntityDrop
+                        {
+                            EntityId = entity.EntityId,
+                            ItemId = short.Parse(drop.ItemId),
+                            Quantity = (short)drop.Quantity
+                        };
+                        _context.EntityDrop.Add(entityDrop);
+                    }
+
+                    previousGameObject = gameObject;
+                    previousEntity = entity;
+                }
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["HostileEntityId"] = new SelectList(_context.HostileEntity, "HostileEntityId", "HostileEntityId", enemy.HostileEntityId);
-            return View(enemy);
+
+            return View(viewModel);
         }
 
         // GET: Enemies/Edit/5
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
             var enemy = _context.Enemy
@@ -233,38 +351,180 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(short id, [Bind("EnemyId,HostileEntityId")] Enemy enemy)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(EnemyEditViewModel viewModel)
         {
-            if (id != enemy.EnemyId)
-            {
-                return NotFound();
-            }
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
 
             if (ModelState.IsValid)
             {
-                try
+                var originalEnemy = await _context.Enemy
+                    .Include(e => e.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(en => en.GameObject)
+                    .Include(e => e.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(en => en.EntityDrops)
+                    .FirstOrDefaultAsync(e => e.EnemyId == short.Parse(viewModel.EnemyId));
+
+                if (originalEnemy == null)
                 {
-                    _context.Update(enemy);
+                    return NotFound();
+                }
+
+                var existingGameObjects = new List<GameObject>();
+                var current = originalEnemy.HostileEntity.Entity.GameObject;
+                while (current != null)
+                {
+                    existingGameObjects.Add(current);
+                    current = await _context.GameObject
+                        .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+                }
+
+                var allEntityIds = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select(s => s.EntityId)
+                    .ToList();
+
+                if (allEntityIds.Count != allEntityIds.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Entity IDs must be unique across all stages");
+                    return View(viewModel);
+                }
+
+                var allGameObjectNames = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
+                    .ToList();
+
+                foreach (var name in allGameObjectNames)
+                {
+                    if (!existingGameObjects.Any(go => go.GameObjectName == name) &&
+                        await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                    {
+                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                var allSprites = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select(s => s.Sprite)
+                    .ToList();
+
+                foreach (var sprite in allSprites)
+                {
+                    if (!existingGameObjects.Any(go => go.Sprite == sprite) &&
+                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                    {
+                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                foreach (var go in existingGameObjects)
+                {
+                    var entity = await _context.Entity
+                        .Include(e => e.EntityDrops)
+                        .Include(e => e.HostileEntity)
+                        .FirstOrDefaultAsync(e => e.GameObjectName == go.GameObjectName);
+
+                    if (entity != null)
+                    {
+                        _context.EntityDrop.RemoveRange(entity.EntityDrops);
+                        if (entity.HostileEntity != null)
+                        {
+                            _context.HostileEntity.Remove(entity.HostileEntity);
+                        }
+                        _context.Entity.Remove(entity);
+                    }
+                    _context.GameObject.Remove(go);
+                }
+                await _context.SaveChangesAsync();
+
+                GameObject? previousGameObject = null;
+                Entity? previousEntity = null;
+
+                for (int i = 0; i < viewModel.Stages.Count; i++)
+                {
+                    var stage = viewModel.Stages[i];
+
+                    if (string.IsNullOrEmpty(stage.Sprite))
+                        continue;
+
+                    var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+
+                    var gameObject = new GameObject
+                    {
+                        GameObjectName = gameObjectName,
+                        Description = i == 0 ? viewModel.Description : null,
+                        Sprite = stage.Sprite,
+                        TransformName = previousGameObject?.GameObjectName
+                    };
+
+                    _context.GameObject.Add(gameObject);
                     await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!EnemyExists(enemy.EnemyId))
+
+                    var entity = new Entity
                     {
-                        return NotFound();
-                    }
-                    else
+                        EntityId = stage.EntityId,
+                        GameObjectName = gameObject.GameObjectName,
+                        Hp = stage.Hp,
+                        Defense = (short)stage.Defense
+                    };
+
+                    _context.Entity.Add(entity);
+                    await _context.SaveChangesAsync();
+
+                    var hostileEntity = new HostileEntity
                     {
-                        throw;
+                        EntityId = entity.EntityId,
+                        ContactDamage = (short)stage.ContactDamage
+                    };
+
+                    _context.HostileEntity.Add(hostileEntity);
+                    await _context.SaveChangesAsync();
+
+                    var enemy = new Enemy
+                    {
+                        HostileEntityId = hostileEntity.HostileEntityId
+                    };
+
+                    _context.Enemy.Add(enemy);
+                    await _context.SaveChangesAsync();
+
+                    foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                    {
+                        var entityDrop = new EntityDrop
+                        {
+                            EntityId = entity.EntityId,
+                            ItemId = short.Parse(drop.ItemId),
+                            Quantity = (short)drop.Quantity
+                        };
+                        _context.EntityDrop.Add(entityDrop);
                     }
+
+                    previousGameObject = gameObject;
+                    previousEntity = entity;
                 }
+
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["HostileEntityId"] = new SelectList(_context.HostileEntity, "HostileEntityId", "HostileEntityId", enemy.HostileEntityId);
-            return View(enemy);
+
+            return View(viewModel);
         }
 
         // GET: Enemies/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(short id)
         {
             var enemy = await _context.Enemy
@@ -291,6 +551,7 @@ namespace TerrariaDB.Controllers.Terraria
         // POST: Enemies/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
             var enemy = await _context.Enemy
@@ -354,11 +615,6 @@ namespace TerrariaDB.Controllers.Terraria
                 current = await _context.GameObject
                     .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
             }
-        }
-
-        private bool EnemyExists(short id)
-        {
-            return _context.Enemy.Any(e => e.EnemyId == id);
         }
     }
 }

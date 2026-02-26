@@ -15,7 +15,7 @@ namespace TerrariaDB.ViewModels.Terraria.Enemy
         public string Sprite { get; set; } = string.Empty;
         public int Hp { get; set; }
         public int Defense { get; set; }
-        public int EntityId { get; set; }
+        public short EntityId { get; set; }
         public int ContactDamage { get; set; }
         public List<EnemyDropCreateViewModel> Drops { get; set; } = new();
     }

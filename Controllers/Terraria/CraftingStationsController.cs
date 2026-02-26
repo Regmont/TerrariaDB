@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
@@ -64,6 +65,7 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: CraftingStations/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             var viewModel = new CraftingStationCreateViewModel();
@@ -86,18 +88,53 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("CraftingStationName")] CraftingStation craftingStation)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(CraftingStationCreateViewModel viewModel)
         {
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
             if (ModelState.IsValid)
             {
+                if (await _context.CraftingStation.AnyAsync(cs => cs.CraftingStationName == viewModel.CraftingStationName))
+                {
+                    ModelState.AddModelError("CraftingStationName", "A crafting station with this name already exists");
+                    return View(viewModel);
+                }
+
+                var craftingStation = new CraftingStation
+                {
+                    CraftingStationName = viewModel.CraftingStationName
+                };
+
                 _context.Add(craftingStation);
                 await _context.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(viewModel.SelectedItemId))
+                {
+                    var item = await _context.Item.FindAsync(short.Parse(viewModel.SelectedItemId));
+                    if (item != null)
+                    {
+                        item.CraftingStationName = craftingStation.CraftingStationName;
+                        _context.Update(item);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
                 return RedirectToAction(nameof(Index));
             }
-            return View(craftingStation);
+            return View(viewModel);
         }
 
         // GET: CraftingStations/Edit/5
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(string name)
         {
             var craftingStation = _context.CraftingStation
@@ -138,15 +175,57 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("CraftingStationName")] CraftingStation craftingStation)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(CraftingStationEditViewModel viewModel)
         {
-            if (id != craftingStation.CraftingStationName)
-            {
-                return NotFound();
-            }
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName,
+                    Selected = i.ItemId.ToString() == viewModel.SelectedItemId
+                })
+                .ToList();
 
             if (ModelState.IsValid)
             {
+                var craftingStation = await _context.CraftingStation
+                    .Include(cs => cs.Items)
+                    .FirstOrDefaultAsync(cs => cs.CraftingStationName == viewModel.OriginalCraftingStationName);
+
+                if (craftingStation == null)
+                {
+                    return NotFound();
+                }
+
+                if (viewModel.OriginalCraftingStationName != viewModel.CraftingStationName &&
+                    await _context.CraftingStation.AnyAsync(cs => cs.CraftingStationName == viewModel.CraftingStationName))
+                {
+                    ModelState.AddModelError("CraftingStationName", "A crafting station with this name already exists");
+                    return View(viewModel);
+                }
+
+                var oldItems = craftingStation.Items.ToList();
+                foreach (var item in oldItems)
+                {
+                    item.CraftingStationName = null;
+                    _context.Update(item);
+                }
+
+                craftingStation.CraftingStationName = viewModel.CraftingStationName;
+
+                if (!string.IsNullOrEmpty(viewModel.SelectedItemId))
+                {
+                    var newItem = await _context.Item.FindAsync(short.Parse(viewModel.SelectedItemId));
+                    if (newItem != null)
+                    {
+                        newItem.CraftingStationName = craftingStation.CraftingStationName;
+                        _context.Update(newItem);
+                    }
+                }
+
                 try
                 {
                     _context.Update(craftingStation);
@@ -154,21 +233,19 @@ namespace TerrariaDB.Controllers.Terraria
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CraftingStationExists(craftingStation.CraftingStationName))
+                    if (!CraftingStationExists(viewModel.OriginalCraftingStationName))
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(craftingStation);
+            return View(viewModel);
         }
 
         // GET: CraftingStations/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id)
         {
             var craftingStation = await _context.CraftingStation
@@ -195,6 +272,7 @@ namespace TerrariaDB.Controllers.Terraria
         // POST: CraftingStations/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
             var craftingStation = await _context.CraftingStation

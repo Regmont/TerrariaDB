@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
@@ -124,6 +125,7 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Bosses/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             var viewModel = new BossCreateViewModel();
@@ -183,19 +185,226 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("BossName,SummonItemId")] Boss boss)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(BossCreateViewModel viewModel)
         {
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableEnemies = _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(e => e.GameObject)
+                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+                .Select(e => new SelectListItem
+                {
+                    Value = e.EnemyId.ToString(),
+                    Text = e.HostileEntity.Entity.GameObject.GameObjectName
+                })
+                .ToList();
+
             if (ModelState.IsValid)
             {
-                _context.Add(boss);
+                if (await _context.Boss.AnyAsync(b => b.BossName == viewModel.BossName))
+                {
+                    ModelState.AddModelError("BossName", "A boss with this name already exists");
+                    return View(viewModel);
+                }
+
+                var filledParts = viewModel.BossParts
+                    .Where(p => !string.IsNullOrEmpty(p.PartName))
+                    .ToList();
+
+                if (!filledParts.Any())
+                {
+                    ModelState.AddModelError("", "At least one boss part must be filled");
+                    return View(viewModel);
+                }
+
+                var allGameObjectNames = new List<string>();
+                var allSprites = new List<string>();
+                var allEntityIds = new List<int>();
+
+                foreach (var part in filledParts)
+                {
+                    var filledStages = part.Stages
+                        .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                        .ToList();
+
+                    if (!filledStages.Any())
+                    {
+                        ModelState.AddModelError("", $"Part '{part.PartName}' must have at least one stage");
+                        return View(viewModel);
+                    }
+
+                    for (int i = 0; i < filledStages.Count; i++)
+                    {
+                        var stage = filledStages[i];
+                        var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
+
+                        allGameObjectNames.Add(gameObjectName);
+                        allSprites.Add(stage.Sprite);
+                        allEntityIds.Add(stage.EntityId);
+                    }
+                }
+
+                if (allGameObjectNames.Count != allGameObjectNames.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Game object names must be unique across all parts and stages");
+                    return View(viewModel);
+                }
+
+                if (allSprites.Count != allSprites.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Sprites must be unique across all parts and stages");
+                    return View(viewModel);
+                }
+
+                if (allEntityIds.Count != allEntityIds.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Entity IDs must be unique across all parts and stages");
+                    return View(viewModel);
+                }
+
+                foreach (var name in allGameObjectNames)
+                {
+                    if (await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                    {
+                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                foreach (var sprite in allSprites)
+                {
+                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                    {
+                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                var boss = new Boss
+                {
+                    BossName = viewModel.BossName,
+                    SummonItemId = !string.IsNullOrEmpty(viewModel.SummonItemId) ? short.Parse(viewModel.SummonItemId) : null
+                };
+
+                _context.Boss.Add(boss);
+                await _context.SaveChangesAsync();
+
+                foreach (var drop in viewModel.BossDrops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                {
+                    var bossDrop = new BossDrop
+                    {
+                        BossName = boss.BossName,
+                        ItemId = short.Parse(drop.ItemId),
+                        Quantity = (short)drop.Quantity
+                    };
+                    _context.BossDrop.Add(bossDrop);
+                }
+
+                foreach (var part in filledParts)
+                {
+                    var filledStages = part.Stages
+                        .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                        .ToList();
+
+                    GameObject? previousGameObject = null;
+                    Entity? previousEntity = null;
+
+                    for (int i = 0; i < filledStages.Count; i++)
+                    {
+                        var stage = filledStages[i];
+                        var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
+
+                        var gameObject = new GameObject
+                        {
+                            GameObjectName = gameObjectName,
+                            Description = i == 0 ? part.Description : null,
+                            Sprite = stage.Sprite,
+                            TransformName = previousGameObject?.GameObjectName
+                        };
+
+                        _context.GameObject.Add(gameObject);
+                        await _context.SaveChangesAsync();
+
+                        var entity = new Entity
+                        {
+                            EntityId = stage.EntityId,
+                            GameObjectName = gameObject.GameObjectName,
+                            Hp = stage.Hp,
+                            Defense = (short)stage.Defense
+                        };
+
+                        _context.Entity.Add(entity);
+                        await _context.SaveChangesAsync();
+
+                        var hostileEntity = new HostileEntity
+                        {
+                            EntityId = entity.EntityId,
+                            ContactDamage = (short)stage.ContactDamage
+                        };
+
+                        _context.HostileEntity.Add(hostileEntity);
+                        await _context.SaveChangesAsync();
+
+                        var bossPart = new BossPart
+                        {
+                            BossName = boss.BossName,
+                            HostileEntityId = hostileEntity.HostileEntityId,
+                            Quantity = (short)part.Quantity
+                        };
+
+                        _context.BossPart.Add(bossPart);
+                        await _context.SaveChangesAsync();
+
+                        if (i == 0)
+                        {
+                            foreach (var enemy in stage.SpawnedEnemies.Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0))
+                            {
+                                var bossPartEnemy = new BossPartEnemies
+                                {
+                                    BossPartId = bossPart.BossPartId,
+                                    EnemyId = short.Parse(enemy.EnemyId),
+                                    Quantity = (short)enemy.Quantity
+                                };
+                                _context.BossPartEnemies.Add(bossPartEnemy);
+                            }
+                        }
+
+                        foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                        {
+                            var entityDrop = new EntityDrop
+                            {
+                                EntityId = entity.EntityId,
+                                ItemId = short.Parse(drop.ItemId),
+                                Quantity = (short)drop.Quantity
+                            };
+                            _context.EntityDrop.Add(entityDrop);
+                        }
+
+                        previousGameObject = gameObject;
+                        previousEntity = entity;
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["SummonItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName", boss.SummonItemId);
-            return View(boss);
+
+            return View(viewModel);
         }
 
         // GET: Bosses/Edit/5
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(string name)
         {
             var boss = _context.Boss
@@ -351,38 +560,287 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("BossName,SummonItemId")] Boss boss)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(BossEditViewModel viewModel)
         {
-            if (id != boss.BossName)
-            {
-                return NotFound();
-            }
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableEnemies = _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(e => e.GameObject)
+                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+                .Select(e => new SelectListItem
+                {
+                    Value = e.EnemyId.ToString(),
+                    Text = e.HostileEntity.Entity.GameObject.GameObjectName
+                })
+                .ToList();
 
             if (ModelState.IsValid)
             {
-                try
+                var originalBoss = await _context.Boss
+                    .Include(b => b.BossDrops)
+                    .Include(b => b.BossParts)
+                        .ThenInclude(bp => bp.HostileEntity)
+                            .ThenInclude(he => he.Entity)
+                                .ThenInclude(e => e.GameObject)
+                    .Include(b => b.BossParts)
+                        .ThenInclude(bp => bp.HostileEntity)
+                            .ThenInclude(he => he.Entity)
+                                .ThenInclude(e => e.EntityDrops)
+                    .Include(b => b.BossParts)
+                        .ThenInclude(bp => bp.BossPartEnemies)
+                    .FirstOrDefaultAsync(b => b.BossName == viewModel.OriginalBossName);
+
+                if (originalBoss == null)
                 {
-                    _context.Update(boss);
-                    await _context.SaveChangesAsync();
+                    return NotFound();
                 }
-                catch (DbUpdateConcurrencyException)
+
+                if (viewModel.OriginalBossName != viewModel.BossName &&
+                    await _context.Boss.AnyAsync(b => b.BossName == viewModel.BossName))
                 {
-                    if (!BossExists(boss.BossName))
+                    ModelState.AddModelError("BossName", "A boss with this name already exists");
+                    return View(viewModel);
+                }
+
+                var existingGameObjects = new List<GameObject>();
+                var existingEntities = new List<Entity>();
+                var existingHostileEntities = new List<HostileEntity>();
+                var existingBossParts = new List<BossPart>();
+                var existingBossPartEnemies = new List<BossPartEnemies>();
+                var existingEntityDrops = new List<EntityDrop>();
+
+                foreach (var part in originalBoss.BossParts)
+                {
+                    var current = part.HostileEntity.Entity.GameObject;
+                    while (current != null && !existingGameObjects.Contains(current))
                     {
-                        return NotFound();
+                        existingGameObjects.Add(current);
+                        var entity = await _context.Entity
+                            .Include(e => e.EntityDrops)
+                            .FirstOrDefaultAsync(e => e.GameObjectName == current.GameObjectName);
+                        if (entity != null)
+                        {
+                            existingEntities.Add(entity);
+                            existingEntityDrops.AddRange(entity.EntityDrops);
+                        }
+                        current = await _context.GameObject
+                            .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
                     }
-                    else
+                    existingHostileEntities.Add(part.HostileEntity);
+                    existingBossParts.Add(part);
+                    existingBossPartEnemies.AddRange(part.BossPartEnemies);
+                }
+
+                var filledParts = viewModel.BossParts
+                    .Where(p => !string.IsNullOrEmpty(p.PartName))
+                    .ToList();
+
+                if (!filledParts.Any())
+                {
+                    ModelState.AddModelError("", "At least one boss part must be filled");
+                    return View(viewModel);
+                }
+
+                var allGameObjectNames = new List<string>();
+                var allSprites = new List<string>();
+                var allEntityIds = new List<int>();
+
+                foreach (var part in filledParts)
+                {
+                    var filledStages = part.Stages
+                        .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                        .ToList();
+
+                    if (!filledStages.Any())
                     {
-                        throw;
+                        ModelState.AddModelError("", $"Part '{part.PartName}' must have at least one stage");
+                        return View(viewModel);
+                    }
+
+                    for (int i = 0; i < filledStages.Count; i++)
+                    {
+                        var stage = filledStages[i];
+                        var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
+
+                        allGameObjectNames.Add(gameObjectName);
+                        allSprites.Add(stage.Sprite);
+                        allEntityIds.Add(stage.EntityId);
                     }
                 }
+
+                if (allGameObjectNames.Count != allGameObjectNames.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Game object names must be unique across all parts and stages");
+                    return View(viewModel);
+                }
+
+                if (allSprites.Count != allSprites.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Sprites must be unique across all parts and stages");
+                    return View(viewModel);
+                }
+
+                if (allEntityIds.Count != allEntityIds.Distinct().Count())
+                {
+                    ModelState.AddModelError("", "Entity IDs must be unique across all parts and stages");
+                    return View(viewModel);
+                }
+
+                foreach (var name in allGameObjectNames)
+                {
+                    if (!existingGameObjects.Any(go => go.GameObjectName == name) &&
+                        await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                    {
+                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                foreach (var sprite in allSprites)
+                {
+                    if (!existingGameObjects.Any(go => go.Sprite == sprite) &&
+                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                    {
+                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
+                _context.BossDrop.RemoveRange(originalBoss.BossDrops);
+                _context.BossPartEnemies.RemoveRange(existingBossPartEnemies);
+                _context.EntityDrop.RemoveRange(existingEntityDrops);
+                _context.BossPart.RemoveRange(existingBossParts);
+                _context.HostileEntity.RemoveRange(existingHostileEntities);
+                _context.Entity.RemoveRange(existingEntities);
+                _context.GameObject.RemoveRange(existingGameObjects);
+                _context.Boss.Remove(originalBoss);
+                await _context.SaveChangesAsync();
+
+                var boss = new Boss
+                {
+                    BossName = viewModel.BossName,
+                    SummonItemId = !string.IsNullOrEmpty(viewModel.SummonItemId) ? short.Parse(viewModel.SummonItemId) : null
+                };
+
+                _context.Boss.Add(boss);
+                await _context.SaveChangesAsync();
+
+                foreach (var drop in viewModel.BossDrops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                {
+                    var bossDrop = new BossDrop
+                    {
+                        BossName = boss.BossName,
+                        ItemId = short.Parse(drop.ItemId),
+                        Quantity = (short)drop.Quantity
+                    };
+                    _context.BossDrop.Add(bossDrop);
+                }
+
+                foreach (var part in filledParts)
+                {
+                    var filledStages = part.Stages
+                        .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                        .ToList();
+
+                    GameObject? previousGameObject = null;
+                    Entity? previousEntity = null;
+
+                    for (int i = 0; i < filledStages.Count; i++)
+                    {
+                        var stage = filledStages[i];
+                        var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
+
+                        var gameObject = new GameObject
+                        {
+                            GameObjectName = gameObjectName,
+                            Description = i == 0 ? part.Description : null,
+                            Sprite = stage.Sprite,
+                            TransformName = previousGameObject?.GameObjectName
+                        };
+
+                        _context.GameObject.Add(gameObject);
+                        await _context.SaveChangesAsync();
+
+                        var entity = new Entity
+                        {
+                            EntityId = stage.EntityId,
+                            GameObjectName = gameObject.GameObjectName,
+                            Hp = stage.Hp,
+                            Defense = (short)stage.Defense
+                        };
+
+                        _context.Entity.Add(entity);
+                        await _context.SaveChangesAsync();
+
+                        var hostileEntity = new HostileEntity
+                        {
+                            EntityId = entity.EntityId,
+                            ContactDamage = (short)stage.ContactDamage
+                        };
+
+                        _context.HostileEntity.Add(hostileEntity);
+                        await _context.SaveChangesAsync();
+
+                        var bossPart = new BossPart
+                        {
+                            BossName = boss.BossName,
+                            HostileEntityId = hostileEntity.HostileEntityId,
+                            Quantity = (short)part.Quantity
+                        };
+
+                        _context.BossPart.Add(bossPart);
+                        await _context.SaveChangesAsync();
+
+                        if (i == 0)
+                        {
+                            foreach (var enemy in stage.SpawnedEnemies.Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0))
+                            {
+                                var bossPartEnemy = new BossPartEnemies
+                                {
+                                    BossPartId = bossPart.BossPartId,
+                                    EnemyId = short.Parse(enemy.EnemyId),
+                                    Quantity = (short)enemy.Quantity
+                                };
+                                _context.BossPartEnemies.Add(bossPartEnemy);
+                            }
+                        }
+
+                        foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                        {
+                            var entityDrop = new EntityDrop
+                            {
+                                EntityId = entity.EntityId,
+                                ItemId = short.Parse(drop.ItemId),
+                                Quantity = (short)drop.Quantity
+                            };
+                            _context.EntityDrop.Add(entityDrop);
+                        }
+
+                        previousGameObject = gameObject;
+                        previousEntity = entity;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["SummonItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName", boss.SummonItemId);
-            return View(boss);
+
+            return View(viewModel);
         }
 
         // GET: Bosses/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id)
         {
             var boss = await _context.Boss
@@ -411,6 +869,7 @@ namespace TerrariaDB.Controllers.Terraria
         // POST: Bosses/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(BossDeleteViewModel viewModel)
         {
             var boss = await _context.Boss
@@ -487,11 +946,6 @@ namespace TerrariaDB.Controllers.Terraria
 
                 current = nextGameObject;
             }
-        }
-
-        private bool BossExists(string id)
-        {
-            return _context.Boss.Any(e => e.BossName == id);
         }
     }
 }

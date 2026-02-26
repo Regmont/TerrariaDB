@@ -18,7 +18,7 @@ namespace TerrariaDB.ViewModels.Terraria.TownNpc
         public string Sprite { get; set; } = string.Empty;
         public int Hp { get; set; }
         public int Defense { get; set; }
-        public int EntityId { get; set; }
+        public short EntityId { get; set; }
     }
 
     public class TownNpcDropCreateViewModel

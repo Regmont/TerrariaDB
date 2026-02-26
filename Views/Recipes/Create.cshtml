@@ -5,6 +5,8 @@
 <a asp-action="Index">Back</a>
 
 <form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
     <div>
         <div>
             <label>Result Item:</label>

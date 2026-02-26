@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
@@ -26,7 +27,7 @@ namespace TerrariaDB.Controllers.Terraria
                     .ThenInclude(ri => ri.Item)
                         .ThenInclude(i => i.GameObject)
                 .Include(r => r.CraftingStation)
-                    .ThenInclude(cs => cs.Items)
+                    .ThenInclude(cs => cs!.Items)
                         .ThenInclude(i => i.GameObject)
                 .AsQueryable();
 
@@ -113,6 +114,7 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Recipes/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             var viewModel = new RecipeCreateViewModel();
@@ -148,20 +150,78 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("RecipeId,ResultItemId,CraftingStationName,ResultItemQuantity")] Recipe recipe)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(RecipeCreateViewModel viewModel)
         {
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
             if (ModelState.IsValid)
             {
+                var ingredientIds = viewModel.Ingredients
+                    .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
+                    .Select(i => short.Parse(i.ItemId))
+                    .OrderBy(id => id)
+                    .ToList();
+
+                var existingRecipe = await _context.Recipe
+                    .Include(r => r.RecipeItems)
+                    .Where(r => r.ResultItemId == short.Parse(viewModel.ResultItemId))
+                    .Where(r => r.CraftingStationName == viewModel.CraftingStationName)
+                    .Where(r => r.RecipeItems.All(ri => ingredientIds.Contains(ri.ItemId)))
+                    .Where(r => ingredientIds.All(id => r.RecipeItems.Any(ri => ri.ItemId == id)))
+                    .FirstOrDefaultAsync();
+
+                if (existingRecipe != null)
+                {
+                    ModelState.AddModelError("", "A recipe with these items already exists");
+                    return View(viewModel);
+                }
+
+                var recipe = new Recipe
+                {
+                    ResultItemId = short.Parse(viewModel.ResultItemId),
+                    ResultItemQuantity = viewModel.ResultItemQuantity,
+                    CraftingStationName = viewModel.CraftingStationName
+                };
+
                 _context.Add(recipe);
+                await _context.SaveChangesAsync();
+
+                foreach (var ingredient in viewModel.Ingredients.Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0))
+                {
+                    var recipeItem = new RecipeItems
+                    {
+                        RecipeId = recipe.RecipeId,
+                        ItemId = short.Parse(ingredient.ItemId),
+                        Quantity = (short)ingredient.Quantity
+                    };
+                    _context.RecipeItems.Add(recipeItem);
+                }
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName", recipe.CraftingStationName);
-            ViewData["ResultItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName", recipe.ResultItemId);
-            return View(recipe);
+            return View(viewModel);
         }
 
         // GET: Recipes/Edit/5
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
             var recipe = _context.Recipe
@@ -224,15 +284,76 @@ namespace TerrariaDB.Controllers.Terraria
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(short id, [Bind("RecipeId,ResultItemId,CraftingStationName,ResultItemQuantity")] Recipe recipe)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(RecipeEditViewModel viewModel)
         {
-            if (id != recipe.RecipeId)
-            {
-                return NotFound();
-            }
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
 
             if (ModelState.IsValid)
             {
+                var recipe = await _context.Recipe
+                    .Include(r => r.RecipeItems)
+                    .FirstOrDefaultAsync(r => r.RecipeId == short.Parse(viewModel.RecipeId));
+
+                if (recipe == null)
+                {
+                    return NotFound();
+                }
+
+                var ingredientIds = viewModel.Ingredients
+                    .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
+                    .Select(i => short.Parse(i.ItemId))
+                    .OrderBy(id => id)
+                    .ToList();
+
+                var duplicateExists = await _context.Recipe
+                    .Include(r => r.RecipeItems)
+                    .Where(r => r.RecipeId != recipe.RecipeId)
+                    .Where(r => r.ResultItemId == short.Parse(viewModel.ResultItemId))
+                    .Where(r => r.CraftingStationName == viewModel.CraftingStationName)
+                    .Where(r => r.RecipeItems.All(ri => ingredientIds.Contains(ri.ItemId)))
+                    .Where(r => ingredientIds.All(id => r.RecipeItems.Any(ri => ri.ItemId == id)))
+                    .AnyAsync();
+
+                if (duplicateExists)
+                {
+                    ModelState.AddModelError("", "A recipe with these items already exists");
+                    return View(viewModel);
+                }
+
+                recipe.ResultItemId = short.Parse(viewModel.ResultItemId);
+                recipe.ResultItemQuantity = viewModel.ResultItemQuantity;
+                recipe.CraftingStationName = viewModel.CraftingStationName;
+
+                _context.RecipeItems.RemoveRange(recipe.RecipeItems);
+
+                foreach (var ingredient in viewModel.Ingredients.Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0))
+                {
+                    var recipeItem = new RecipeItems
+                    {
+                        RecipeId = recipe.RecipeId,
+                        ItemId = short.Parse(ingredient.ItemId),
+                        Quantity = (short)ingredient.Quantity
+                    };
+                    _context.RecipeItems.Add(recipeItem);
+                }
+
                 try
                 {
                     _context.Update(recipe);
@@ -244,19 +365,15 @@ namespace TerrariaDB.Controllers.Terraria
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName", recipe.CraftingStationName);
-            ViewData["ResultItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName", recipe.ResultItemId);
-            return View(recipe);
+            return View(viewModel);
         }
 
         // GET: Recipes/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(short id)
         {
             var recipe = await _context.Recipe
@@ -278,6 +395,7 @@ namespace TerrariaDB.Controllers.Terraria
         // POST: Recipes/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
             var recipe = await _context.Recipe
