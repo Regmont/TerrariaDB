@@ -139,10 +139,40 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Items/Create
         public IActionResult Create()
         {
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName");
-            ViewData["CurrencyName"] = new SelectList(_context.CurrencyType, "CurrencyName", "CurrencyName");
-            ViewData["GameObjectName"] = new SelectList(_context.GameObject, "GameObjectName", "GameObjectName");
-            return View();
+            var viewModel = new ItemCreateViewModel();
+
+            viewModel.AvailableCurrencies = _context.CurrencyType
+                .Select(ct => new SelectListItem
+                {
+                    Value = ct.CurrencyName,
+                    Text = ct.CurrencyName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
+                viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                viewModel.StageItemIds.Add(string.Empty);
+            }
+
+            return View(viewModel);
         }
 
         // POST: Items/Create
@@ -165,22 +195,73 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Items/Edit/5
-        public async Task<IActionResult> Edit(short? id)
+        public IActionResult Edit(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var item = _context.Item
+                .Include(i => i.GameObject)
+                    .ThenInclude(go => go.Transform)
+                .Include(i => i.CurrencyType)
+                .Include(i => i.CraftingStation)
+                .FirstOrDefault(i => i.ItemId == id);
 
-            var item = await _context.Item.FindAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName", item.CraftingStationName);
-            ViewData["CurrencyName"] = new SelectList(_context.CurrencyType, "CurrencyName", "CurrencyName", item.CurrencyName);
-            ViewData["GameObjectName"] = new SelectList(_context.GameObject, "GameObjectName", "GameObjectName", item.GameObjectName);
-            return View(item);
+
+            var viewModel = new ItemEditViewModel
+            {
+                ItemId = item.ItemId.ToString(),
+                Name = item.GameObject.GameObjectName,
+                Description = item.GameObject.Description ?? string.Empty,
+                BasePrice = item.BasePrice,
+                CurrencyName = item.CurrencyName,
+                CraftingStationName = item.CraftingStationName
+            };
+
+            viewModel.AvailableCurrencies = _context.CurrencyType
+                .Select(ct => new SelectListItem
+                {
+                    Value = ct.CurrencyName,
+                    Text = ct.CurrencyName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            var currentItem = item;
+            for (int i = 0; i < 4; i++)
+            {
+                if (currentItem != null)
+                {
+                    viewModel.StageItemIds.Add(currentItem.ItemId.ToString());
+                    currentItem = currentItem.GameObject.Transform != null
+                        ? _context.Item.FirstOrDefault(i => i.GameObjectName == currentItem.GameObject.Transform.GameObjectName)
+                        : null;
+                }
+                else
+                {
+                    viewModel.StageItemIds.Add(string.Empty);
+                }
+            }
+
+            return View(viewModel);
         }
 
         // POST: Items/Edit/5

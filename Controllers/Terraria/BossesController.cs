@@ -126,8 +126,56 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Bosses/Create
         public IActionResult Create()
         {
-            ViewData["SummonItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName");
-            return View();
+            var viewModel = new BossCreateViewModel();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableEnemies = _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(e => e.GameObject)
+                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+                .Select(e => new SelectListItem
+                {
+                    Value = e.EnemyId.ToString(),
+                    Text = e.HostileEntity.Entity.GameObject.GameObjectName
+                })
+                .ToList();
+
+            for (int i = 0; i < 15; i++)
+            {
+                viewModel.BossDrops.Add(new BossDropCreateViewModel());
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                var part = new BossPartCreateViewModel();
+
+                for (int j = 0; j < 2; j++)
+                {
+                    var stage = new BossStageCreateViewModel();
+
+                    for (int k = 0; k < 3; k++)
+                    {
+                        stage.SpawnedEnemies.Add(new BossStageEnemyCreateViewModel());
+                        stage.Drops.Add(new BossStageDropCreateViewModel());
+                    }
+
+                    part.Stages.Add(stage);
+                }
+
+                viewModel.BossParts.Add(part);
+            }
+
+            return View(viewModel);
         }
 
         // POST: Bosses/Create
@@ -148,20 +196,154 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Bosses/Edit/5
-        public async Task<IActionResult> Edit(string id)
+        public IActionResult Edit(string name)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var boss = _context.Boss
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.GameObject)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.EntityDrops)
+                                .ThenInclude(ed => ed.Item)
+                                    .ThenInclude(i => i.GameObject)
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.BossPartEnemies)
+                        .ThenInclude(bpe => bpe.Enemy)
+                            .ThenInclude(e => e.HostileEntity)
+                                .ThenInclude(he => he.Entity)
+                                    .ThenInclude(e => e.GameObject)
+                .Include(b => b.BossDrops)
+                    .ThenInclude(bd => bd.Item)
+                        .ThenInclude(i => i.GameObject)
+                .FirstOrDefault(b => b.BossName == name);
 
-            var boss = await _context.Boss.FindAsync(id);
             if (boss == null)
             {
                 return NotFound();
             }
-            ViewData["SummonItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName", boss.SummonItemId);
-            return View(boss);
+
+            var viewModel = new BossEditViewModel
+            {
+                OriginalBossName = boss.BossName,
+                BossName = boss.BossName,
+                SummonItemId = boss.SummonItemId?.ToString()
+            };
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableEnemies = _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(e => e.GameObject)
+                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+                .Select(e => new SelectListItem
+                {
+                    Value = e.EnemyId.ToString(),
+                    Text = e.HostileEntity.Entity.GameObject.GameObjectName
+                })
+                .ToList();
+
+            var bossDrops = boss.BossDrops.ToList();
+            for (int i = 0; i < 15; i++)
+            {
+                var drop = new BossDropEditViewModel();
+                if (i < bossDrops.Count)
+                {
+                    drop.ItemId = bossDrops[i].ItemId.ToString();
+                    drop.Quantity = bossDrops[i].Quantity;
+                }
+                viewModel.BossDrops.Add(drop);
+            }
+
+            var bossParts = boss.BossParts.ToList();
+            for (int i = 0; i < 5; i++)
+            {
+                var part = new BossPartEditViewModel();
+
+                if (i < bossParts.Count)
+                {
+                    var currentPart = bossParts[i];
+                    part.PartName = currentPart.HostileEntity.Entity.GameObject.GameObjectName;
+                    part.Description = currentPart.HostileEntity.Entity.GameObject.Description ?? string.Empty;
+                    part.Quantity = currentPart.Quantity;
+
+                    for (int j = 0; j < 2; j++)
+                    {
+                        var stage = new BossStageEditViewModel();
+
+                        if (j == 0)
+                        {
+                            stage.Sprite = currentPart.HostileEntity.Entity.GameObject.Sprite;
+                            stage.Hp = currentPart.HostileEntity.Entity.Hp ?? 0;
+                            stage.Defense = currentPart.HostileEntity.Entity.Defense;
+                            stage.EntityId = currentPart.HostileEntity.Entity.EntityId;
+                            stage.ContactDamage = currentPart.HostileEntity.ContactDamage;
+
+                            var spawnedEnemies = currentPart.BossPartEnemies.ToList();
+                            for (int k = 0; k < 3; k++)
+                            {
+                                var enemy = new BossStageEnemyEditViewModel();
+                                if (k < spawnedEnemies.Count)
+                                {
+                                    enemy.EnemyId = spawnedEnemies[k].EnemyId.ToString();
+                                    enemy.Quantity = spawnedEnemies[k].Quantity;
+                                }
+                                stage.SpawnedEnemies.Add(enemy);
+                            }
+
+                            var drops = currentPart.HostileEntity.Entity.EntityDrops.ToList();
+                            for (int k = 0; k < 3; k++)
+                            {
+                                var drop = new BossStageDropEditViewModel();
+                                if (k < drops.Count)
+                                {
+                                    drop.ItemId = drops[k].ItemId.ToString();
+                                    drop.Quantity = drops[k].Quantity;
+                                }
+                                stage.Drops.Add(drop);
+                            }
+                        }
+                        else
+                        {
+                            for (int k = 0; k < 3; k++)
+                            {
+                                stage.SpawnedEnemies.Add(new BossStageEnemyEditViewModel());
+                                stage.Drops.Add(new BossStageDropEditViewModel());
+                            }
+                        }
+
+                        part.Stages.Add(stage);
+                    }
+                }
+                else
+                {
+                    for (int j = 0; j < 2; j++)
+                    {
+                        var stage = new BossStageEditViewModel();
+                        for (int k = 0; k < 3; k++)
+                        {
+                            stage.SpawnedEnemies.Add(new BossStageEnemyEditViewModel());
+                            stage.Drops.Add(new BossStageDropEditViewModel());
+                        }
+                        part.Stages.Add(stage);
+                    }
+                }
+
+                viewModel.BossParts.Add(part);
+            }
+
+            return View(viewModel);
         }
 
         // POST: Bosses/Edit/5

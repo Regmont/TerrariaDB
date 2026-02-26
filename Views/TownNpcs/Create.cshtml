@@ -21,24 +21,42 @@
 
     <div>
         <div style="display: flex; flex-direction: row;">
-            @for (int i = 0; i < 4; i++)
-            {
+            <div class="town-stage" data-stage="0">
                 <div>
+                    <label>Sprite:</label>
+                    <input asp-for="Stages[0].Sprite" type="text" maxlength="500" required value="" />
+                </div>
+                <div>
+                    <label>HP:</label>
+                    @Model.Stages[0].Hp
+                </div>
+                <div>
+                    <label>Defense:</label>
+                    @Model.Stages[0].Defense
+                </div>
+                <div>
+                    <label>Game ID:</label>
+                    <input asp-for="Stages[0].EntityId" type="number" min="-500" max="1000" value="0" />
+                </div>
+            </div>
+            @for (int i = 1; i < 4; i++)
+            {
+                <div class="town-stage" data-stage="@i">
                     <div>
                         <label>Sprite:</label>
-                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" />
+                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" value="" />
                     </div>
                     <div>
                         <label>HP:</label>
-                        <input asp-for="Stages[i].Hp" type="number" value="250" />
+                        @Model.Stages[i].Hp
                     </div>
                     <div>
                         <label>Defense:</label>
-                        <input asp-for="Stages[i].Defense" type="number" value="15" />
+                        @Model.Stages[i].Defense
                     </div>
                     <div>
                         <label>Game ID:</label>
-                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" />
+                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" value="0" />
                     </div>
                 </div>
             }
@@ -50,10 +68,10 @@
         <div style="display: flex; flex-direction: row;">
             @for (int i = 0; i < 5; i++)
             {
-                <div>
+                <div class="town-drop" data-index="@i">
                     <select asp-for="Drops[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="Drops[i].Quantity" type="number" min="1" max="100" />
-                    <button type="button">Clear</button>
+                    <input asp-for="Drops[i].Quantity" type="number" min="1" max="100" value="1" />
+                    <button type="button" class="clear-town-drop" data-index="@i">Clear</button>
                 </div>
             }
         </div>
@@ -64,11 +82,11 @@
         <div style="display: flex; flex-direction: row;">
             @for (int i = 0; i < 15; i++)
             {
-                <div>
+                <div class="town-trade" data-index="@i">
                     <select asp-for="Trades[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="Trades[i].Quantity" type="number" min="1" max="50" />
+                    <input asp-for="Trades[i].Quantity" type="number" min="1" max="50" value="1" />
                     <select asp-for="Trades[i].TradeType" asp-items="Model.AvailableTradeTypes" required></select>
-                    <button type="button">Clear</button>
+                    <button type="button" class="clear-town-trade" data-index="@i">Clear</button>
                 </div>
             }
         </div>
@@ -76,3 +94,39 @@
 
     <button type="submit">Save</button>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.querySelectorAll('.clear-town-drop').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const index = this.getAttribute('data-index');
+                const dropDiv = document.querySelector(`.town-drop[data-index="${index}"]`);
+                
+                const select = dropDiv.querySelector('select');
+                const input = dropDiv.querySelector('input[type="number"]');
+                
+                if (select) select.selectedIndex = 0;
+                if (input) input.value = input.getAttribute('value') || '1';
+            });
+        });
+
+        document.querySelectorAll('.clear-town-trade').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const index = this.getAttribute('data-index');
+                const tradeDiv = document.querySelector(`.town-trade[data-index="${index}"]`);
+                
+                const selects = tradeDiv.querySelectorAll('select');
+                const input = tradeDiv.querySelector('input[type="number"]');
+                
+                selects.forEach(select => select.selectedIndex = 0);
+                if (input) input.value = input.getAttribute('value') || '1';
+            });
+        });
+    </script>
+}

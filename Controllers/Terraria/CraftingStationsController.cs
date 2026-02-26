@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
 using TerrariaDB.Models.Terraria;
@@ -65,7 +66,19 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: CraftingStations/Create
         public IActionResult Create()
         {
-            return View();
+            var viewModel = new CraftingStationCreateViewModel();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            return View(viewModel);
         }
 
         // POST: CraftingStations/Create
@@ -85,19 +98,39 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: CraftingStations/Edit/5
-        public async Task<IActionResult> Edit(string id)
+        public IActionResult Edit(string name)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var craftingStation = _context.CraftingStation
+                .Include(cs => cs.Items)
+                    .ThenInclude(i => i.GameObject)
+                .FirstOrDefault(cs => cs.CraftingStationName == name);
 
-            var craftingStation = await _context.CraftingStation.FindAsync(id);
             if (craftingStation == null)
             {
                 return NotFound();
             }
-            return View(craftingStation);
+
+            var viewModel = new CraftingStationEditViewModel
+            {
+                OriginalCraftingStationName = craftingStation.CraftingStationName,
+                CraftingStationName = craftingStation.CraftingStationName
+            };
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName,
+                    Selected = craftingStation.Items.Any(ci => ci.ItemId == i.ItemId)
+                })
+                .ToList();
+
+            viewModel.SelectedItemId = craftingStation.Items
+                .FirstOrDefault()?.ItemId.ToString() ?? string.Empty;
+
+            return View(viewModel);
         }
 
         // POST: CraftingStations/Edit/5

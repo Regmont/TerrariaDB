@@ -1,97 +1,66 @@
-﻿@model TerrariaDB.ViewModels.Terraria.Item.ItemDetailsViewModel
+﻿@model TerrariaDB.ViewModels.Terraria.Item.ItemEditViewModel
 
 @{
-    ViewData["Title"] = "Item Details";
+    ViewData["Title"] = "Edit Item";
 }
 
-<h1>Item Details</h1>
+<h1>Edit Item</h1>
 
-<div>
-    <a asp-action="Index">Back</a>
-    @if (User.IsInRole("Admin"))
-    {
-        <a asp-action="Edit" asp-route-id="@Model.ItemId">Edit</a>
-        <a asp-action="Delete" asp-route-id="@Model.ItemId">Delete</a>
+<a asp-action="Index">Back</a>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="ItemId" />
+
+    <div>
+        <div>
+            <label>Name:</label>
+            <input asp-for="Name" type="text" maxlength="50" required />
+        </div>
+    </div>
+
+    <div>
+        <div>
+            <label>Description:</label>
+            <input asp-for="Description" type="text" maxlength="200" />
+        </div>
+    </div>
+
+    <div>
+        <div>
+            <label>Base price:</label>
+            <input asp-for="BasePrice" type="number" min="0" max="500000000" value="0" />
+        </div>
+    </div>
+
+    <div>
+        <div>
+            <label>Currency Type:</label>
+            <select asp-for="CurrencyName" asp-items="Model.AvailableCurrencies" required></select>
+        </div>
+    </div>
+
+    <div>
+        <div>
+            <label>Crafting station:</label>
+            <select asp-for="CraftingStationName" asp-items="Model.AvailableCraftingStations"></select>
+        </div>
+    </div>
+
+    <div>
+        <label>Stages:</label>
+        <div style="display: flex; flex-direction: row;">
+            @for (int i = 0; i < 4; i++)
+            {
+                <select asp-for="StageItemIds[i]" asp-items="Model.AvailableItems" required="@(i == 0)"></select>
+            }
+        </div>
+    </div>
+
+    <button type="submit">Save</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-</div>
-
-<a asp-controller="Recipes"
-   asp-action="Index"
-   asp-route-resultItem="@Model.Name">
-   Recipes
-</a>
-
-<span>@Model.Name</span>
-
-<span>@Model.Description</span>
-
-<span>@Model.BasePrice</span>
-
-<span>@Model.CurrencyType</span>
-
-@if (!string.IsNullOrEmpty(Model.SummonedBossName))
-{
-    <span>Summoned boss</span>
-    <div style="display: flex; flex-direction: column;">
-        <img src="@Model.SummonedBossSprite"/>
-        <span>@Model.SummonedBossName</span>
-    </div>
-}
-
-@if (!string.IsNullOrEmpty(Model.CraftingStationName))
-{
-    <span>Crafting station</span>
-    <span>@Model.CraftingStationName</span>
-}
-
-<div style="display: flex; flex-direction: row;">
-    @foreach (var transformation in Model.Transformations.Take(4))
-    {
-        <img src="@transformation.Sprite"/>
-    }
-</div>
-
-@if (Model.DroppedFromBosses.Any())
-{
-    <span>Dropped From Bosses</span>
-    <div style="display: flex; flex-direction: row;">
-        @foreach (var boss in Model.DroppedFromBosses.Take(3))
-        {
-            <div style="display: flex; flex-direction: column;">
-                <img src="@boss.Sprite"/>
-                <span>@boss.Name</span>
-            </div>
-        }
-    </div>
-}
-
-@if (Model.DroppedFromEntities.Any())
-{
-    <span>Dropped From Entities</span>
-    <div style="display: flex; flex-direction: row; overflow-x: auto;">
-        @foreach (var entity in Model.DroppedFromEntities.Take(15))
-        {
-            <div style="display: flex; flex-direction: column;">
-                <img src="@entity.Sprite"/>
-                <span>@entity.Name</span>
-            </div>
-        }
-    </div>
-}
-
-@if (Model.TradedByNpcs.Any())
-{
-    <span>Traded By NPCs</span>
-    <div style="display: flex; flex-direction: row; overflow-x: auto;">
-        @foreach (var npc in Model.TradedByNpcs.Take(3))
-        {
-            <div style="display: flex; flex-direction: column;">
-                <img src="@npc.Sprite"/>
-                <span>@npc.Name</span>
-                <span>@npc.Quantity</span>
-                <span>@npc.TotalPrice</span>
-                <span>@npc.TradeType</span>
-            </div>
-        }
-    </div>
 }

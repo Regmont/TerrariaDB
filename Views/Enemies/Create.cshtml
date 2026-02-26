@@ -23,36 +23,36 @@
         <div style="display: flex; flex-direction: row;">
             @for (int i = 0; i < 3; i++)
             {
-                <div>
+                <div class="enemy-stage" data-stage="@i">
                     <div>
                         <label>Sprite:</label>
-                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" />
+                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" required="@(i == 0)" value="" />
                     </div>
                     <div>
                         <label>HP:</label>
-                        <input asp-for="Stages[i].Hp" type="number" min="0" max="30000" />
+                        <input asp-for="Stages[i].Hp" type="number" min="0" max="30000" value="0" />
                     </div>
                     <div>
                         <label>Defense:</label>
-                        <input asp-for="Stages[i].Defense" type="number" min="0" max="10000" />
+                        <input asp-for="Stages[i].Defense" type="number" min="0" max="10000" value="0" />
                     </div>
                     <div>
                         <label>Game ID:</label>
-                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" />
+                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" value="0" />
                     </div>
                     <div>
                         <label>Contact Damage:</label>
-                        <input asp-for="Stages[i].ContactDamage" type="number" min="0" max="1000" />
+                        <input asp-for="Stages[i].ContactDamage" type="number" min="0" max="1000" value="0" />
                     </div>
                     <div>
                         <label>Drop</label>
                         <div style="display: flex; flex-direction: row;">
                             @for (int j = 0; j < 5; j++)
                             {
-                                <div>
+                                <div class="enemy-drop" data-stage="@i" data-drop="@j">
                                     <select asp-for="Stages[i].Drops[j].ItemId" asp-items="Model.AvailableItems"></select>
-                                    <input asp-for="Stages[i].Drops[j].Quantity" type="number" min="1" max="50" />
-                                    <button type="button">Clear</button>
+                                    <input asp-for="Stages[i].Drops[j].Quantity" type="number" min="1" max="50" value="1" />
+                                    <button type="button" class="clear-enemy-drop" data-stage="@i" data-drop="@j">Clear</button>
                                 </div>
                             }
                         </div>
@@ -64,3 +64,26 @@
 
     <button type="submit">Save</button>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.querySelectorAll('.clear-enemy-drop').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const stage = this.getAttribute('data-stage');
+                const drop = this.getAttribute('data-drop');
+                const dropDiv = document.querySelector(`.enemy-drop[data-stage="${stage}"][data-drop="${drop}"]`);
+                
+                const select = dropDiv.querySelector('select');
+                const input = dropDiv.querySelector('input[type="number"]');
+                
+                if (select) select.selectedIndex = 0;
+                if (input) input.value = input.getAttribute('value') || '1';
+            });
+        });
+    </script>
+}

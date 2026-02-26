@@ -12,9 +12,15 @@
     <div>
         <div>
             <label>Name:</label>
-            <input asp-for="CurrencyName" type="text" />
+            <input asp-for="CurrencyName" type="text" required/>
         </div>
     </div>
 
     <button type="submit">Save</button>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

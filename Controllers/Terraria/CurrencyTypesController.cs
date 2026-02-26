@@ -35,7 +35,8 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: CurrencyTypes/Create
         public IActionResult Create()
         {
-            return View();
+            var viewModel = new CurrencyTypeCreateViewModel();
+            return View(viewModel);
         }
 
         // POST: CurrencyTypes/Create
@@ -55,19 +56,15 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: CurrencyTypes/Edit/5
-        public async Task<IActionResult> Edit(string id)
+        public IActionResult Edit(string currencyName)
         {
-            if (id == null)
+            var viewModel = new CurrencyTypeEditViewModel
             {
-                return NotFound();
-            }
+                OriginalCurrencyName = currencyName,
+                CurrencyName = currencyName
+            };
 
-            var currencyType = await _context.CurrencyType.FindAsync(id);
-            if (currencyType == null)
-            {
-                return NotFound();
-            }
-            return View(currencyType);
+            return View(viewModel);
         }
 
         // POST: CurrencyTypes/Edit/5

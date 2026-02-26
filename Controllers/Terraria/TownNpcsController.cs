@@ -11,6 +11,9 @@ namespace TerrariaDB.Controllers.Terraria
     {
         private readonly ApplicationDbContext _context;
 
+        private const int DefaultHp = 250;
+        private const int DefaultDefense = 15;
+
         public TownNpcsController(ApplicationDbContext context)
         {
             _context = context;
@@ -113,8 +116,46 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: TownNpcs/Create
         public IActionResult Create()
         {
-            ViewData["EntityId"] = new SelectList(_context.Entity, "EntityId", "GameObjectName");
-            return View();
+            var viewModel = new TownNpcCreateViewModel();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableTradeTypes = _context.TradeType
+                .Select(tt => new SelectListItem
+                {
+                    Value = tt.TradeTypeName,
+                    Text = tt.TradeTypeName
+                })
+                .ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                viewModel.Stages.Add(new TownNpcCreateStageViewModel
+                {
+                    Hp = DefaultHp,
+                    Defense = DefaultDefense
+                });
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                viewModel.Drops.Add(new TownNpcDropCreateViewModel());
+            }
+
+            for (int i = 0; i < 15; i++)
+            {
+                viewModel.Trades.Add(new TownNpcTradeCreateViewModel());
+            }
+
+            return View(viewModel);
         }
 
         // POST: TownNpcs/Create
@@ -135,20 +176,98 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: TownNpcs/Edit/5
-        public async Task<IActionResult> Edit(byte? id)
+        public IActionResult Edit(byte id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var townNpc = _context.TownNpc
+                .Include(tn => tn.Entity)
+                    .ThenInclude(e => e.GameObject)
+                .Include(tn => tn.Entity)
+                    .ThenInclude(e => e.EntityDrops)
+                    .ThenInclude(ed => ed.Item)
+                    .ThenInclude(i => i.GameObject)
+                .Include(tn => tn.TradeOffers)
+                    .ThenInclude(to => to.Item)
+                    .ThenInclude(i => i.GameObject)
+                .Include(tn => tn.TradeOffers)
+                    .ThenInclude(to => to.TradeType)
+                .FirstOrDefault(tn => tn.TownNpcId == id);
 
-            var townNpc = await _context.TownNpc.FindAsync(id);
             if (townNpc == null)
             {
                 return NotFound();
             }
-            ViewData["EntityId"] = new SelectList(_context.Entity, "EntityId", "GameObjectName", townNpc.EntityId);
-            return View(townNpc);
+
+            var viewModel = new TownNpcEditViewModel
+            {
+                TownNpcId = townNpc.TownNpcId.ToString(),
+                Name = townNpc.Entity.GameObject.GameObjectName,
+                Description = townNpc.Entity.GameObject.Description ?? string.Empty
+            };
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableTradeTypes = _context.TradeType
+                .Select(tt => new SelectListItem
+                {
+                    Value = tt.TradeTypeName,
+                    Text = tt.TradeTypeName
+                })
+                .ToList();
+
+            for (int i = 0; i < 4; i++)
+            {
+                var stage = new TownNpcEditStageViewModel();
+
+                if (i == 0)
+                {
+                    stage.Sprite = townNpc.Entity.GameObject.Sprite;
+                    stage.Hp = townNpc.Entity.Hp ?? 250;
+                    stage.Defense = townNpc.Entity.Defense;
+                    stage.EntityId = townNpc.Entity.EntityId;
+                }
+                else
+                {
+                    stage.Hp = 250;
+                    stage.Defense = 15;
+                }
+
+                viewModel.Stages.Add(stage);
+            }
+
+            var drops = townNpc.Entity.EntityDrops.ToList();
+            for (int i = 0; i < 5; i++)
+            {
+                var drop = new TownNpcDropEditViewModel();
+                if (i < drops.Count)
+                {
+                    drop.ItemId = drops[i].ItemId.ToString();
+                    drop.Quantity = drops[i].Quantity;
+                }
+                viewModel.Drops.Add(drop);
+            }
+
+            var trades = townNpc.TradeOffers.ToList();
+            for (int i = 0; i < 15; i++)
+            {
+                var trade = new TownNpcTradeEditViewModel();
+                if (i < trades.Count)
+                {
+                    trade.ItemId = trades[i].ItemId.ToString();
+                    trade.Quantity = trades[i].Quantity;
+                    trade.TradeType = trades[i].TradeTypeName;
+                }
+                viewModel.Trades.Add(trade);
+            }
+
+            return View(viewModel);
         }
 
         // POST: TownNpcs/Edit/5

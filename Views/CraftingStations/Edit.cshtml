@@ -1,5 +1,9 @@
 ﻿@model TerrariaDB.ViewModels.Terraria.CraftingStation.CraftingStationEditViewModel
 
+@{
+    ViewData["Title"] = "Edit Crafting Station";
+}
+
 <h1>Edit Crafting Station</h1>
 
 <a asp-action="Index">Back</a>
@@ -21,3 +25,9 @@
 
     <button type="submit">Save</button>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

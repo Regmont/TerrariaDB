@@ -110,8 +110,31 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Enemies/Create
         public IActionResult Create()
         {
-            ViewData["HostileEntityId"] = new SelectList(_context.HostileEntity, "HostileEntityId", "HostileEntityId");
-            return View();
+            var viewModel = new EnemyCreateViewModel();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            for (int i = 0; i < 3; i++)
+            {
+                var stage = new EnemyStageViewModel();
+
+                for (int j = 0; j < 5; j++)
+                {
+                    stage.Drops.Add(new EnemyDropCreateViewModel());
+                }
+
+                viewModel.Stages.Add(stage);
+            }
+
+            return View(viewModel);
         }
 
         // POST: Enemies/Create
@@ -132,20 +155,77 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Enemies/Edit/5
-        public async Task<IActionResult> Edit(short? id)
+        public IActionResult Edit(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var enemy = _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                    .ThenInclude(e => e.GameObject)
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                    .ThenInclude(e => e.EntityDrops)
+                    .ThenInclude(ed => ed.Item)
+                    .ThenInclude(i => i.GameObject)
+                .FirstOrDefault(e => e.EnemyId == id);
 
-            var enemy = await _context.Enemy.FindAsync(id);
             if (enemy == null)
             {
                 return NotFound();
             }
-            ViewData["HostileEntityId"] = new SelectList(_context.HostileEntity, "HostileEntityId", "HostileEntityId", enemy.HostileEntityId);
-            return View(enemy);
+
+            var viewModel = new EnemyEditViewModel
+            {
+                EnemyId = enemy.EnemyId.ToString(),
+                Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
+                Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty
+            };
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            for (int i = 0; i < 3; i++)
+            {
+                var stage = new EnemyEditStageViewModel();
+
+                if (i == 0)
+                {
+                    stage.Sprite = enemy.HostileEntity.Entity.GameObject.Sprite;
+                    stage.Hp = enemy.HostileEntity.Entity.Hp ?? 0;
+                    stage.Defense = enemy.HostileEntity.Entity.Defense;
+                    stage.EntityId = enemy.HostileEntity.Entity.EntityId;
+                    stage.ContactDamage = enemy.HostileEntity.ContactDamage;
+
+                    var drops = enemy.HostileEntity.Entity.EntityDrops.ToList();
+                    for (int j = 0; j < 5; j++)
+                    {
+                        var drop = new EnemyDropEditViewModel();
+                        if (j < drops.Count)
+                        {
+                            drop.ItemId = drops[j].ItemId.ToString();
+                            drop.Quantity = drops[j].Quantity;
+                        }
+                        stage.Drops.Add(drop);
+                    }
+                }
+                else
+                {
+                    for (int j = 0; j < 5; j++)
+                    {
+                        stage.Drops.Add(new EnemyDropEditViewModel());
+                    }
+                }
+
+                viewModel.Stages.Add(stage);
+            }
+
+            return View(viewModel);
         }
 
         // POST: Enemies/Edit/5

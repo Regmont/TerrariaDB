@@ -22,7 +22,7 @@
     <div>
         <div>
             <label>Base price:</label>
-            <input asp-for="BasePrice" type="number" min="0" max="500000000" required />
+            <input asp-for="BasePrice" type="number" min="0" max="500000000" value="0" />
         </div>
     </div>
 
@@ -45,10 +45,16 @@
         <div style="display: flex; flex-direction: row;">
             @for (int i = 0; i < 4; i++)
             {
-                <select asp-for="StageItemIds[i]" asp-items="Model.AvailableItems"></select>
+                <select asp-for="StageItemIds[i]" asp-items="Model.AvailableItems" required="@(i == 0)"></select>
             }
         </div>
     </div>
 
     <button type="submit">Save</button>
 </form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

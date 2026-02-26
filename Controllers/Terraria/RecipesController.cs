@@ -115,9 +115,32 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: Recipes/Create
         public IActionResult Create()
         {
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName");
-            ViewData["ResultItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName");
-            return View();
+            var viewModel = new RecipeCreateViewModel();
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
+            for (int i = 0; i < 8; i++)
+            {
+                viewModel.Ingredients.Add(new RecipeCreateIngredientViewModel());
+            }
+
+            return View(viewModel);
         }
 
         // POST: Recipes/Create
@@ -139,21 +162,61 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: Recipes/Edit/5
-        public async Task<IActionResult> Edit(short? id)
+        public IActionResult Edit(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var recipe = _context.Recipe
+                .Include(r => r.ResultItem)
+                    .ThenInclude(i => i.GameObject)
+                .Include(r => r.CraftingStation)
+                .Include(r => r.RecipeItems)
+                    .ThenInclude(ri => ri.Item)
+                    .ThenInclude(i => i.GameObject)
+                .FirstOrDefault(r => r.RecipeId == id);
 
-            var recipe = await _context.Recipe.FindAsync(id);
             if (recipe == null)
             {
                 return NotFound();
             }
-            ViewData["CraftingStationName"] = new SelectList(_context.CraftingStation, "CraftingStationName", "CraftingStationName", recipe.CraftingStationName);
-            ViewData["ResultItemId"] = new SelectList(_context.Item, "ItemId", "CurrencyName", recipe.ResultItemId);
-            return View(recipe);
+
+            var viewModel = new RecipeEditViewModel
+            {
+                RecipeId = recipe.RecipeId.ToString(),
+                ResultItemId = recipe.ResultItemId.ToString(),
+                ResultItemQuantity = recipe.ResultItemQuantity,
+                CraftingStationName = recipe.CraftingStationName
+            };
+
+            viewModel.AvailableItems = _context.Item
+                .Include(i => i.GameObject)
+                .Where(i => i.GameObject.TransformedFrom == null)
+                .Select(i => new SelectListItem
+                {
+                    Value = i.ItemId.ToString(),
+                    Text = i.GameObject.GameObjectName
+                })
+                .ToList();
+
+            viewModel.AvailableCraftingStations = _context.CraftingStation
+                .Select(cs => new SelectListItem
+                {
+                    Value = cs.CraftingStationName,
+                    Text = cs.CraftingStationName
+                })
+                .ToList();
+
+            for (int i = 0; i < 8; i++)
+            {
+                viewModel.Ingredients.Add(new RecipeEditIngredientViewModel());
+            }
+
+            var recipeItems = recipe.RecipeItems.ToList();
+            for (int i = 0; i < recipeItems.Count && i < 8; i++)
+            {
+                viewModel.Ingredients[i].ItemId = recipeItems[i].ItemId.ToString();
+                viewModel.Ingredients[i].Quantity = recipeItems[i].Quantity;
+            }
+
+            return View(viewModel);
         }
 
         // POST: Recipes/Edit/5

@@ -35,7 +35,8 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: TradeTypes/Create
         public IActionResult Create()
         {
-            return View();
+            var viewModel = new TradeTypeCreateViewModel();
+            return View(viewModel);
         }
 
         // POST: TradeTypes/Create
@@ -55,19 +56,15 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // GET: TradeTypes/Edit/5
-        public async Task<IActionResult> Edit(string id)
+        public IActionResult Edit(string tradeTypeName)
         {
-            if (id == null)
+            var viewModel = new TradeTypeEditViewModel
             {
-                return NotFound();
-            }
+                OriginalTradeTypeName = tradeTypeName,
+                TradeTypeName = tradeTypeName
+            };
 
-            var tradeType = await _context.TradeType.FindAsync(id);
-            if (tradeType == null)
-            {
-                return NotFound();
-            }
-            return View(tradeType);
+            return View(viewModel);
         }
 
         // POST: TradeTypes/Edit/5
