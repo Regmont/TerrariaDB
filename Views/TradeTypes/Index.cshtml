@@ -15,23 +15,25 @@
 </div>
 
 <div>
-    <table>
-        @foreach (var tradeTypeName in Model.TradeTypeNames)
-        {
-            <tr>
-                <td>
-                    <span>@tradeTypeName</span>
-                </td>
-                @if (User.IsInRole("Admin"))
-                {
+    <div style="overflow-y: auto; max-height: 500px;">
+        <table>
+            @foreach (var tradeTypeName in Model.TradeTypeNames)
+            {
+                <tr>
                     <td>
-                        <div style="display: flex; flex-direction: row;">
-                            <a asp-action="Edit" asp-route-id="@tradeTypeName">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@tradeTypeName">Delete</a>
-                        </div>
+                        <span>@tradeTypeName</span>
                     </td>
-                }
-            </tr>
-        }
-    </table>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <td>
+                            <div style="display: flex; flex-direction: row;">
+                                <a asp-action="Edit" asp-route-id="@tradeTypeName">Edit</a>
+                                <a asp-action="Delete" asp-route-id="@tradeTypeName">Delete</a>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+        </table>
+    </div>
 </div>

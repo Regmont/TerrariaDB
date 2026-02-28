@@ -14,14 +14,15 @@
 
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="BossName" type="text" maxlength="50" required />
+            <label asp-for="BossName"></label>
+            <input asp-for="BossName" type="text" />
+            <span asp-validation-for="BossName" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Summon Item:</label>
+            <label asp-for="SummonItemId">Summon Item</label>
             <select asp-for="SummonItemId" asp-items="Model.AvailableItems"></select>
         </div>
     </div>
@@ -33,7 +34,8 @@
             {
                 <div>
                     <select asp-for="BossDrops[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="BossDrops[i].Quantity" type="number" min="1" max="150" value="1" />
+                    <input asp-for="BossDrops[i].Quantity" type="number" />
+                    <span asp-validation-for="BossDrops[i].Quantity" class="text-danger"></span>
                     <button type="button" class="clear-boss-drop" data-index="@i">Clear</button>
                 </div>
             }
@@ -48,16 +50,19 @@
                 <div class="boss-part" data-part="@i">
                     <div>
                         <div>
-                            <label>Part Name:</label>
-                            <input asp-for="BossParts[i].PartName" type="text" maxlength="50" required="@(i == 0)" />
+                            <label asp-for="BossParts[i].PartName">Part Name</label>
+                            <input asp-for="BossParts[i].PartName" type="text" />
+                            <span asp-validation-for="BossParts[i].PartName" class="text-danger"></span>
                         </div>
                         <div>
-                            <label>Description:</label>
-                            <input asp-for="BossParts[i].Description" type="text" maxlength="200" />
+                            <label asp-for="BossParts[i].Description">Description</label>
+                            <input asp-for="BossParts[i].Description" type="text" />
+                            <span asp-validation-for="BossParts[i].Description" class="text-danger"></span>
                         </div>
                         <div>
-                            <label>Quantity:</label>
-                            <input asp-for="BossParts[i].Quantity" type="number" min="1" max="50" value="1" />
+                            <label asp-for="BossParts[i].Quantity">Quantity</label>
+                            <input asp-for="BossParts[i].Quantity" type="number" />
+                            <span asp-validation-for="BossParts[i].Quantity" class="text-danger"></span>
                         </div>
                     </div>
 
@@ -66,24 +71,29 @@
                         {
                             <div class="boss-stage" data-part="@i" data-stage="@j">
                                 <div>
-                                    <label>Sprite:</label>
-                                    <input asp-for="BossParts[i].Stages[j].Sprite" type="text" maxlength="500" required="@(j == 0)" />
+                                    <label asp-for="BossParts[i].Stages[j].Sprite">Sprite</label>
+                                    <input asp-for="BossParts[i].Stages[j].Sprite" type="text" />
+                                    <span asp-validation-for="BossParts[i].Stages[j].Sprite" class="text-danger"></span>
                                 </div>
                                 <div>
-                                    <label>HP:</label>
-                                    <input asp-for="BossParts[i].Stages[j].Hp" type="number" min="0" max="150000" value="0" />
+                                    <label asp-for="BossParts[i].Stages[j].Hp">HP</label>
+                                    <input asp-for="BossParts[i].Stages[j].Hp" type="number" />
+                                    <span asp-validation-for="BossParts[i].Stages[j].Hp" class="text-danger"></span>
                                 </div>
                                 <div>
-                                    <label>Defense:</label>
-                                    <input asp-for="BossParts[i].Stages[j].Defense" type="number" min="0" max="100" value="0" />
+                                    <label asp-for="BossParts[i].Stages[j].Defense">Defense</label>
+                                    <input asp-for="BossParts[i].Stages[j].Defense" type="number" />
+                                    <span asp-validation-for="BossParts[i].Stages[j].Defense" class="text-danger"></span>
                                 </div>
                                 <div>
-                                    <label>Game ID:</label>
-                                    <input asp-for="BossParts[i].Stages[j].EntityId" type="number" min="-500" max="1000" value="0" />
+                                    <label asp-for="BossParts[i].Stages[j].EntityId">Game ID</label>
+                                    <input asp-for="BossParts[i].Stages[j].EntityId" type="number" />
+                                    <span asp-validation-for="BossParts[i].Stages[j].EntityId" class="text-danger"></span>
                                 </div>
                                 <div>
-                                    <label>Contact Damage:</label>
-                                    <input asp-for="BossParts[i].Stages[j].ContactDamage" type="number" min="0" max="500" value="0" />
+                                    <label asp-for="BossParts[i].Stages[j].ContactDamage">Contact Damage</label>
+                                    <input asp-for="BossParts[i].Stages[j].ContactDamage" type="number" />
+                                    <span asp-validation-for="BossParts[i].Stages[j].ContactDamage" class="text-danger"></span>
                                 </div>
 
                                 <div>
@@ -93,7 +103,8 @@
                                         {
                                             <div class="spawned-enemy" data-part="@i" data-stage="@j" data-enemy="@k">
                                                 <select asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].EnemyId" asp-items="Model.AvailableEnemies"></select>
-                                                <input asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" type="number" min="1" max="50" value="1" />
+                                                <input asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" type="number" />
+                                                <span asp-validation-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" class="text-danger"></span>
                                                 <button type="button" class="clear-spawned-enemy" data-part="@i" data-stage="@j" data-enemy="@k">Clear</button>
                                             </div>
                                         }
@@ -107,7 +118,8 @@
                                         {
                                             <div class="stage-drop" data-part="@i" data-stage="@j" data-drop="@k">
                                                 <select asp-for="BossParts[i].Stages[j].Drops[k].ItemId" asp-items="Model.AvailableItems"></select>
-                                                <input asp-for="BossParts[i].Stages[j].Drops[k].Quantity" type="number" min="1" max="50" value="1" />
+                                                <input asp-for="BossParts[i].Stages[j].Drops[k].Quantity" type="number" />
+                                                <span asp-validation-for="BossParts[i].Stages[j].Drops[k].Quantity" class="text-danger"></span>
                                                 <button type="button" class="clear-stage-drop" data-part="@i" data-stage="@j" data-drop="@k">Clear</button>
                                             </div>
                                         }
@@ -142,7 +154,7 @@
                 const input = dropDiv.querySelector('input[type="number"]');
 
                 if (select) select.selectedIndex = 0;
-                if (input) input.value = input.getAttribute('value') || '1';
+                if (input) input.value = '1';
             });
         });
 
@@ -154,7 +166,7 @@
                 const input = enemyDiv.querySelector('input[type="number"]');
 
                 if (select) select.selectedIndex = 0;
-                if (input) input.value = input.getAttribute('value') || '1';
+                if (input) input.value = '1';
             });
         });
 
@@ -166,7 +178,7 @@
                 const input = dropDiv.querySelector('input[type="number"]');
 
                 if (select) select.selectedIndex = 0;
-                if (input) input.value = input.getAttribute('value') || '1';
+                if (input) input.value = '1';
             });
         });
 
@@ -181,7 +193,7 @@
                 const selects = stageDiv.querySelectorAll('select');
 
                 inputs.forEach(input => {
-                    input.value = input.getAttribute('value') || '';
+                    input.value = '1';
                 });
 
                 selects.forEach(select => {
@@ -200,7 +212,7 @@
                 const selects = partDiv.querySelectorAll('select');
 
                 inputs.forEach(input => {
-                    input.value = input.getAttribute('value') || '';
+                    input.value = '1';
                 });
 
                 selects.forEach(select => {

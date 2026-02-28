@@ -146,8 +146,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: Recipes/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -173,8 +171,11 @@ namespace TerrariaDB.Controllers.Terraria
 
             if (ModelState.IsValid)
             {
-                var ingredientIds = viewModel.Ingredients
+                var validIngredients = viewModel.Ingredients
                     .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
+                    .ToList();
+
+                var ingredientIds = validIngredients
                     .Select(i => short.Parse(i.ItemId))
                     .OrderBy(id => id)
                     .ToList();
@@ -201,13 +202,12 @@ namespace TerrariaDB.Controllers.Terraria
                 };
 
                 _context.Add(recipe);
-                await _context.SaveChangesAsync();
 
-                foreach (var ingredient in viewModel.Ingredients.Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0))
+                foreach (var ingredient in validIngredients)
                 {
                     var recipeItem = new RecipeItems
                     {
-                        RecipeId = recipe.RecipeId,
+                        Recipe = recipe,
                         ItemId = short.Parse(ingredient.ItemId),
                         Quantity = (short)ingredient.Quantity
                     };
@@ -215,6 +215,7 @@ namespace TerrariaDB.Controllers.Terraria
                 }
 
                 await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
             return View(viewModel);
@@ -280,8 +281,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: Recipes/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]

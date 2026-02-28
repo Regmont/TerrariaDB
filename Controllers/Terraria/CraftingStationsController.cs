@@ -84,8 +84,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: CraftingStations/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -115,7 +113,6 @@ namespace TerrariaDB.Controllers.Terraria
                 };
 
                 _context.Add(craftingStation);
-                await _context.SaveChangesAsync();
 
                 if (!string.IsNullOrEmpty(viewModel.SelectedItemId))
                 {
@@ -124,9 +121,10 @@ namespace TerrariaDB.Controllers.Terraria
                     {
                         item.CraftingStationName = craftingStation.CraftingStationName;
                         _context.Update(item);
-                        await _context.SaveChangesAsync();
                     }
                 }
+
+                await _context.SaveChangesAsync();
 
                 return RedirectToAction(nameof(Index));
             }
@@ -135,12 +133,12 @@ namespace TerrariaDB.Controllers.Terraria
 
         // GET: CraftingStations/Edit/5
         [Authorize(Roles = "Admin")]
-        public IActionResult Edit(string name)
+        public IActionResult Edit(string id)
         {
             var craftingStation = _context.CraftingStation
                 .Include(cs => cs.Items)
                     .ThenInclude(i => i.GameObject)
-                .FirstOrDefault(cs => cs.CraftingStationName == name);
+                .FirstOrDefault(cs => cs.CraftingStationName == id);
 
             if (craftingStation == null)
             {
@@ -171,8 +169,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: CraftingStations/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -273,13 +269,13 @@ namespace TerrariaDB.Controllers.Terraria
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeleteConfirmed(string id)
+        public async Task<IActionResult> DeleteConfirmed(CraftingStationDeleteViewModel viewModel)
         {
             var craftingStation = await _context.CraftingStation
                 .Include(cs => cs.Items)
                 .Include(cs => cs.Recipes)
                     .ThenInclude(r => r.RecipeItems)
-                .FirstOrDefaultAsync(cs => cs.CraftingStationName == id);
+                .FirstOrDefaultAsync(cs => cs.CraftingStationName == viewModel.CraftingStationName);
 
             if (craftingStation == null)
             {
@@ -294,6 +290,13 @@ namespace TerrariaDB.Controllers.Terraria
 
             _context.RecipeItems.RemoveRange(allRecipeItems);
             _context.Recipe.RemoveRange(craftingStation.Recipes);
+
+            foreach (var item in craftingStation.Items)
+            {
+                item.CraftingStationName = null;
+                _context.Update(item);
+            }
+
             _context.CraftingStation.Remove(craftingStation);
 
             await _context.SaveChangesAsync();

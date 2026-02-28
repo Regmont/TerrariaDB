@@ -9,12 +9,15 @@
 <a asp-action="Index">Back</a>
 
 <form asp-action="Edit" method="post">
+    <div asp-validation-summary="ModelOnly"></div>
+
     <input type="hidden" asp-for="OriginalCurrencyName" />
 
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="CurrencyName" type="text" required />
+            <label asp-for="CurrencyName"></label>
+            <input asp-for="CurrencyName" />
+            <span asp-validation-for="CurrencyName"></span>
         </div>
     </div>
 

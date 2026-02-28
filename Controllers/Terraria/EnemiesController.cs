@@ -63,7 +63,7 @@ namespace TerrariaDB.Controllers.Terraria
                 Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
                 Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty,
                 Sprite = enemy.HostileEntity.Entity.GameObject.Sprite,
-                EntityId = enemy.HostileEntity.EntityId.ToString(),
+                EntityId = enemy.HostileEntity.Entity.EntityId.ToString(),
                 Hp = enemy.HostileEntity.Entity.Hp ?? 0,
                 Defense = enemy.HostileEntity.Entity.Defense,
                 ContactDamage = enemy.HostileEntity.ContactDamage,
@@ -73,34 +73,72 @@ namespace TerrariaDB.Controllers.Terraria
                     Sprite = ed.Item.GameObject.Sprite,
                     Quantity = ed.Quantity
                 }).ToList(),
-                Transformations = GetTransformations(enemy.HostileEntity.Entity.GameObject, enemy)
+                Transformations = await GetTransformations(enemy.HostileEntity.Entity.GameObject)
             };
 
             return View(viewModel);
         }
 
-        private List<EnemyTransformationViewModel> GetTransformations(GameObject gameObject, Enemy enemy)
+        private async Task<List<EnemyTransformationViewModel>> GetTransformations(GameObject gameObject)
         {
             var transformations = new List<EnemyTransformationViewModel>();
 
-            var current = gameObject.Transform;
-            while (current != null)
+            var enemyAtFirstStage = await _context.Enemy
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.EntityDrops)
+                            .ThenInclude(ed => ed.Item)
+                                .ThenInclude(i => i.GameObject)
+                .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == gameObject.GameObjectName);
+
+            if (enemyAtFirstStage != null)
             {
                 transformations.Add(new EnemyTransformationViewModel
                 {
-                    Name = current.GameObjectName,
-                    Sprite = current.Sprite,
-                    EntityId = enemy.HostileEntity.EntityId.ToString(),
-                    Hp = enemy.HostileEntity.Entity.Hp ?? 0,
-                    Defense = enemy.HostileEntity.Entity.Defense,
-                    ContactDamage = enemy.HostileEntity.ContactDamage,
-                    Drops = enemy.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
+                    Name = gameObject.GameObjectName,
+                    Sprite = gameObject.Sprite,
+                    EntityId = enemyAtFirstStage.HostileEntity.Entity.EntityId.ToString(),
+                    Hp = enemyAtFirstStage.HostileEntity.Entity.Hp ?? 0,
+                    Defense = enemyAtFirstStage.HostileEntity.Entity.Defense,
+                    ContactDamage = enemyAtFirstStage.HostileEntity.ContactDamage,
+                    Drops = enemyAtFirstStage.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
                     {
                         Name = ed.Item.GameObject.GameObjectName,
                         Sprite = ed.Item.GameObject.Sprite,
                         Quantity = ed.Quantity
                     }).ToList()
                 });
+            }
+
+            var current = gameObject.Transform;
+            while (current != null)
+            {
+                var enemyAtStage = await _context.Enemy
+                    .Include(e => e.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(en => en.EntityDrops)
+                                .ThenInclude(ed => ed.Item)
+                                    .ThenInclude(i => i.GameObject)
+                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
+
+                if (enemyAtStage != null)
+                {
+                    transformations.Add(new EnemyTransformationViewModel
+                    {
+                        Name = current.GameObjectName,
+                        Sprite = current.Sprite,
+                        EntityId = enemyAtStage.HostileEntity.Entity.EntityId.ToString(),
+                        Hp = enemyAtStage.HostileEntity.Entity.Hp ?? 0,
+                        Defense = enemyAtStage.HostileEntity.Entity.Defense,
+                        ContactDamage = enemyAtStage.HostileEntity.ContactDamage,
+                        Drops = enemyAtStage.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
+                        {
+                            Name = ed.Item.GameObject.GameObjectName,
+                            Sprite = ed.Item.GameObject.Sprite,
+                            Quantity = ed.Quantity
+                        }).ToList()
+                    });
+                }
 
                 current = current.Transform;
             }
@@ -140,8 +178,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: Enemies/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -159,6 +195,26 @@ namespace TerrariaDB.Controllers.Terraria
 
             if (ModelState.IsValid)
             {
+                if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+                {
+                    ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
+                    return View(viewModel);
+                }
+
+                var allSprites = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select(s => s.Sprite)
+                    .ToList();
+
+                foreach (var sprite in allSprites)
+                {
+                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                    {
+                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                        return View(viewModel);
+                    }
+                }
+
                 var allEntityIds = viewModel.Stages
                     .Where(s => !string.IsNullOrEmpty(s.Sprite))
                     .Select(s => s.EntityId)
@@ -184,22 +240,7 @@ namespace TerrariaDB.Controllers.Terraria
                     }
                 }
 
-                var allSprites = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select(s => s.Sprite)
-                    .ToList();
-
-                foreach (var sprite in allSprites)
-                {
-                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
                 GameObject? previousGameObject = null;
-                Entity? previousEntity = null;
 
                 for (int i = 0; i < viewModel.Stages.Count; i++)
                 {
@@ -219,7 +260,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.GameObject.Add(gameObject);
-                    await _context.SaveChangesAsync();
 
                     var entity = new Entity
                     {
@@ -230,7 +270,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.Entity.Add(entity);
-                    await _context.SaveChangesAsync();
 
                     var hostileEntity = new HostileEntity
                     {
@@ -239,7 +278,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.HostileEntity.Add(hostileEntity);
-                    await _context.SaveChangesAsync();
 
                     var enemy = new Enemy
                     {
@@ -247,7 +285,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.Enemy.Add(enemy);
-                    await _context.SaveChangesAsync();
 
                     foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
                     {
@@ -261,7 +298,6 @@ namespace TerrariaDB.Controllers.Terraria
                     }
 
                     previousGameObject = gameObject;
-                    previousEntity = entity;
                 }
 
                 await _context.SaveChangesAsync();
@@ -347,8 +383,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: Enemies/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -380,13 +414,48 @@ namespace TerrariaDB.Controllers.Terraria
                     return NotFound();
                 }
 
-                var existingGameObjects = new List<GameObject>();
+                if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+                {
+                    ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
+                    return View(viewModel);
+                }
+
+                var existingStages = new List<(GameObject go, Entity entity, HostileEntity hostile, Enemy enemy)>();
                 var current = originalEnemy.HostileEntity.Entity.GameObject;
                 while (current != null)
                 {
-                    existingGameObjects.Add(current);
+                    var enemyAtStage = await _context.Enemy
+                        .Include(e => e.HostileEntity)
+                            .ThenInclude(he => he.Entity)
+                        .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
+
+                    if (enemyAtStage != null)
+                    {
+                        existingStages.Add((current,
+                            enemyAtStage.HostileEntity.Entity,
+                            enemyAtStage.HostileEntity,
+                            enemyAtStage));
+                    }
                     current = await _context.GameObject
                         .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+                }
+
+                var allSprites = viewModel.Stages
+                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                    .Select(s => s.Sprite)
+                    .ToList();
+
+                for (int i = 0; i < allSprites.Count; i++)
+                {
+                    var sprite = allSprites[i];
+                    var existingSprites = existingStages.Select(s => s.go.Sprite).ToList();
+
+                    if (!existingSprites.Contains(sprite) &&
+                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                    {
+                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                        return View(viewModel);
+                    }
                 }
 
                 var allEntityIds = viewModel.Stages
@@ -405,9 +474,12 @@ namespace TerrariaDB.Controllers.Terraria
                     .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
                     .ToList();
 
-                foreach (var name in allGameObjectNames)
+                for (int i = 0; i < allGameObjectNames.Count; i++)
                 {
-                    if (!existingGameObjects.Any(go => go.GameObjectName == name) &&
+                    var name = allGameObjectNames[i];
+                    var existingNames = existingStages.Select(s => s.go.GameObjectName).ToList();
+
+                    if (!existingNames.Contains(name) &&
                         await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
                     {
                         ModelState.AddModelError("", $"Game object with name '{name}' already exists");
@@ -415,43 +487,7 @@ namespace TerrariaDB.Controllers.Terraria
                     }
                 }
 
-                var allSprites = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select(s => s.Sprite)
-                    .ToList();
-
-                foreach (var sprite in allSprites)
-                {
-                    if (!existingGameObjects.Any(go => go.Sprite == sprite) &&
-                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                foreach (var go in existingGameObjects)
-                {
-                    var entity = await _context.Entity
-                        .Include(e => e.EntityDrops)
-                        .Include(e => e.HostileEntity)
-                        .FirstOrDefaultAsync(e => e.GameObjectName == go.GameObjectName);
-
-                    if (entity != null)
-                    {
-                        _context.EntityDrop.RemoveRange(entity.EntityDrops);
-                        if (entity.HostileEntity != null)
-                        {
-                            _context.HostileEntity.Remove(entity.HostileEntity);
-                        }
-                        _context.Entity.Remove(entity);
-                    }
-                    _context.GameObject.Remove(go);
-                }
-                await _context.SaveChangesAsync();
-
                 GameObject? previousGameObject = null;
-                Entity? previousEntity = null;
 
                 for (int i = 0; i < viewModel.Stages.Count; i++)
                 {
@@ -462,44 +498,68 @@ namespace TerrariaDB.Controllers.Terraria
 
                     var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
 
-                    var gameObject = new GameObject
+                    GameObject gameObject;
+                    Entity entity;
+                    HostileEntity hostileEntity;
+                    Enemy enemy;
+
+                    if (i < existingStages.Count)
                     {
-                        GameObjectName = gameObjectName,
-                        Description = i == 0 ? viewModel.Description : null,
-                        Sprite = stage.Sprite,
-                        TransformName = previousGameObject?.GameObjectName
-                    };
+                        (gameObject, entity, hostileEntity, enemy) = existingStages[i];
 
-                    _context.GameObject.Add(gameObject);
-                    await _context.SaveChangesAsync();
+                        gameObject.GameObjectName = gameObjectName;
+                        gameObject.Description = i == 0 ? viewModel.Description : null;
+                        gameObject.Sprite = stage.Sprite;
+                        gameObject.TransformName = previousGameObject?.GameObjectName;
 
-                    var entity = new Entity
+                        entity.EntityId = stage.EntityId;
+                        entity.Hp = stage.Hp;
+                        entity.Defense = (short)stage.Defense;
+
+                        hostileEntity.ContactDamage = (short)stage.ContactDamage;
+
+                        _context.GameObject.Update(gameObject);
+                        _context.Entity.Update(entity);
+                        _context.HostileEntity.Update(hostileEntity);
+
+                        var oldDrops = await _context.EntityDrop
+                            .Where(ed => ed.EntityId == entity.EntityId)
+                            .ToListAsync();
+                        _context.EntityDrop.RemoveRange(oldDrops);
+                    }
+                    else
                     {
-                        EntityId = stage.EntityId,
-                        GameObjectName = gameObject.GameObjectName,
-                        Hp = stage.Hp,
-                        Defense = (short)stage.Defense
-                    };
+                        gameObject = new GameObject
+                        {
+                            GameObjectName = gameObjectName,
+                            Description = i == 0 ? viewModel.Description : null,
+                            Sprite = stage.Sprite,
+                            TransformName = previousGameObject?.GameObjectName
+                        };
+                        _context.GameObject.Add(gameObject);
 
-                    _context.Entity.Add(entity);
-                    await _context.SaveChangesAsync();
+                        entity = new Entity
+                        {
+                            EntityId = stage.EntityId,
+                            GameObjectName = gameObject.GameObjectName,
+                            Hp = stage.Hp,
+                            Defense = (short)stage.Defense
+                        };
+                        _context.Entity.Add(entity);
 
-                    var hostileEntity = new HostileEntity
-                    {
-                        EntityId = entity.EntityId,
-                        ContactDamage = (short)stage.ContactDamage
-                    };
+                        hostileEntity = new HostileEntity
+                        {
+                            EntityId = entity.EntityId,
+                            ContactDamage = (short)stage.ContactDamage
+                        };
+                        _context.HostileEntity.Add(hostileEntity);
 
-                    _context.HostileEntity.Add(hostileEntity);
-                    await _context.SaveChangesAsync();
-
-                    var enemy = new Enemy
-                    {
-                        HostileEntityId = hostileEntity.HostileEntityId
-                    };
-
-                    _context.Enemy.Add(enemy);
-                    await _context.SaveChangesAsync();
+                        enemy = new Enemy
+                        {
+                            HostileEntityId = hostileEntity.HostileEntityId
+                        };
+                        _context.Enemy.Add(enemy);
+                    }
 
                     foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
                     {
@@ -513,7 +573,21 @@ namespace TerrariaDB.Controllers.Terraria
                     }
 
                     previousGameObject = gameObject;
-                    previousEntity = entity;
+                }
+
+                for (int i = viewModel.Stages.Count; i < existingStages.Count; i++)
+                {
+                    var (go, entity, hostile, enemy) = existingStages[i];
+
+                    var drops = await _context.EntityDrop
+                        .Where(ed => ed.EntityId == entity.EntityId)
+                        .ToListAsync();
+                    _context.EntityDrop.RemoveRange(drops);
+
+                    _context.Enemy.Remove(enemy);
+                    _context.HostileEntity.Remove(hostile);
+                    _context.Entity.Remove(entity);
+                    _context.GameObject.Remove(go);
                 }
 
                 await _context.SaveChangesAsync();
@@ -572,11 +646,13 @@ namespace TerrariaDB.Controllers.Terraria
             var allBossPartEnemies = new List<BossPartEnemies>();
             var allEntityDrops = new List<EntityDrop>();
             var allGameObjects = new List<GameObject>();
+            var allEnemies = new List<Enemy>();
 
-            await CollectEnemyData(enemy, allBossPartEnemies, allEntityDrops, allGameObjects);
+            await CollectEnemyData(enemy, allBossPartEnemies, allEntityDrops, allGameObjects, allEnemies);
 
             _context.BossPartEnemies.RemoveRange(allBossPartEnemies);
             _context.EntityDrop.RemoveRange(allEntityDrops);
+            _context.Enemy.RemoveRange(allEnemies);
 
             foreach (var go in allGameObjects)
             {
@@ -591,7 +667,8 @@ namespace TerrariaDB.Controllers.Terraria
         private async Task CollectEnemyData(Enemy enemy,
             List<BossPartEnemies> bossPartEnemies,
             List<EntityDrop> entityDrops,
-            List<GameObject> gameObjects)
+            List<GameObject> gameObjects,
+            List<Enemy> enemies)
         {
             var current = enemy.HostileEntity.Entity.GameObject;
 
@@ -610,6 +687,7 @@ namespace TerrariaDB.Controllers.Terraria
                 {
                     bossPartEnemies.AddRange(enemyAtStage.BossPartEnemies);
                     entityDrops.AddRange(enemyAtStage.HostileEntity.Entity.EntityDrops);
+                    enemies.Add(enemyAtStage);
                 }
 
                 current = await _context.GameObject

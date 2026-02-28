@@ -5,16 +5,20 @@
 <a asp-action="Index">Back</a>
 
 <form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly"></div>
+
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="CraftingStationName" type="text" maxlength="50" required />
+            <label asp-for="CraftingStationName"></label>
+            <input asp-for="CraftingStationName" />
+            <span asp-validation-for="CraftingStationName"></span>
         </div>
     </div>
 
     <div>
-        <label>Represented by</label>
-        <select asp-for="SelectedItemId" asp-items="Model.AvailableItems" required></select>
+        <label asp-for="SelectedItemId">Represented by</label>
+        <select asp-for="SelectedItemId" asp-items="Model.AvailableItems"></select>
+        <span asp-validation-for="SelectedItemId"></span>
     </div>
 
     <button type="submit">Save</button>

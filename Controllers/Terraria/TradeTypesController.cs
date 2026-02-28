@@ -40,8 +40,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: TradeTypes/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TradeTypeCreateViewModel viewModel)
@@ -69,6 +67,11 @@ namespace TerrariaDB.Controllers.Terraria
         // GET: TradeTypes/Edit/5
         public IActionResult Edit(string tradeTypeName)
         {
+            if (!TradeTypeExists(tradeTypeName))
+            {
+                return NotFound();
+            }
+
             var viewModel = new TradeTypeEditViewModel
             {
                 OriginalTradeTypeName = tradeTypeName,
@@ -79,15 +82,15 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: TradeTypes/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(TradeTypeEditViewModel viewModel)
         {
             if (ModelState.IsValid)
             {
-                var tradeType = await _context.TradeType.FindAsync(viewModel.OriginalTradeTypeName);
+                var tradeType = await _context.TradeType
+                    .Include(tt => tt.TradeOffers)
+                    .FirstOrDefaultAsync(tt => tt.TradeTypeName == viewModel.OriginalTradeTypeName);
 
                 if (tradeType == null)
                 {
@@ -101,12 +104,17 @@ namespace TerrariaDB.Controllers.Terraria
                     return View(viewModel);
                 }
 
+                foreach (var offer in tradeType.TradeOffers)
+                {
+                    offer.TradeTypeName = viewModel.TradeTypeName;
+                }
+
                 tradeType.TradeTypeName = viewModel.TradeTypeName;
 
                 try
                 {
-                    _context.Update(tradeType);
                     await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -116,7 +124,6 @@ namespace TerrariaDB.Controllers.Terraria
                     }
                     throw;
                 }
-                return RedirectToAction(nameof(Index));
             }
             return View(viewModel);
         }
@@ -145,11 +152,11 @@ namespace TerrariaDB.Controllers.Terraria
         // POST: TradeTypes/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(string id)
+        public async Task<IActionResult> DeleteConfirmed(TradeTypeDeleteViewModel viewModel)
         {
             var tradeType = await _context.TradeType
                 .Include(tt => tt.TradeOffers)
-                .FirstOrDefaultAsync(tt => tt.TradeTypeName == id);
+                .FirstOrDefaultAsync(tt => tt.TradeTypeName == viewModel.TradeTypeName);
 
             if (tradeType == null)
             {
@@ -158,11 +165,15 @@ namespace TerrariaDB.Controllers.Terraria
 
             if (tradeType.TradeOffers.Any())
             {
-                return RedirectToAction(nameof(Delete), new { id });
+                var errorViewModel = new TradeTypeDeleteViewModel
+                {
+                    TradeTypeName = tradeType.TradeTypeName,
+                    HasRelatedTrades = true
+                };
+                return View(errorViewModel);
             }
 
             _context.TradeType.Remove(tradeType);
-
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));

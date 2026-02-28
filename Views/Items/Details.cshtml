@@ -1,66 +1,118 @@
-﻿@model TerrariaDB.ViewModels.Terraria.Item.ItemEditViewModel
+﻿@model TerrariaDB.ViewModels.Terraria.Item.ItemDetailsViewModel
 
 @{
-    ViewData["Title"] = "Edit Item";
+    ViewData["Title"] = "Item Details";
 }
 
-<h1>Edit Item</h1>
+<h1>Item Details</h1>
 
-<a asp-action="Index">Back</a>
+<div>
+    <a asp-action="Index">Back</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ItemId">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.ItemId">Delete</a>
+    }
+    <a asp-controller="Recipes"
+       asp-action="Index"
+       asp-route-resultItem="@Model.Name">
+        Recipes
+    </a>
+</div>
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="ItemId" />
-
+<div>
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="Name" type="text" maxlength="50" required />
+            <img src="@Model.Sprite" />
+            <span><strong>@Model.Name</strong></span>
         </div>
-    </div>
 
-    <div>
         <div>
-            <label>Description:</label>
-            <input asp-for="Description" type="text" maxlength="200" />
-        </div>
-    </div>
+            <span>@Model.Description</span>
+            <span><strong>Base price:</strong> @Model.BasePrice @Model.CurrencyType</span>
 
-    <div>
-        <div>
-            <label>Base price:</label>
-            <input asp-for="BasePrice" type="number" min="0" max="500000000" value="0" />
-        </div>
-    </div>
-
-    <div>
-        <div>
-            <label>Currency Type:</label>
-            <select asp-for="CurrencyName" asp-items="Model.AvailableCurrencies" required></select>
-        </div>
-    </div>
-
-    <div>
-        <div>
-            <label>Crafting station:</label>
-            <select asp-for="CraftingStationName" asp-items="Model.AvailableCraftingStations"></select>
-        </div>
-    </div>
-
-    <div>
-        <label>Stages:</label>
-        <div style="display: flex; flex-direction: row;">
-            @for (int i = 0; i < 4; i++)
+            @if (!string.IsNullOrEmpty(Model.CraftingStationName))
             {
-                <select asp-for="StageItemIds[i]" asp-items="Model.AvailableItems" required="@(i == 0)"></select>
+                <span><strong>Crafting station:</strong> @Model.CraftingStationName</span>
             }
         </div>
     </div>
 
-    <button type="submit">Save</button>
-</form>
-
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    @if (!string.IsNullOrEmpty(Model.SummonedBossName))
+    {
+        <div>
+            <h3>Summoned boss</h3>
+            <div>
+                <img src="@Model.SummonedBossSprite" />
+                <span>@Model.SummonedBossName</span>
+            </div>
+        </div>
     }
-}
+
+    @if (Model.Transformations.Any())
+    {
+        <div>
+            <h3>Stages</h3>
+            <div style="display: flex; flex-direction: row; overflow-x: auto;">
+                @foreach (var transformation in Model.Transformations.Take(4))
+                {
+                    <div>
+                        <img src="@transformation.Sprite" />
+                        <span>@transformation.Name</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.DroppedFromBosses.Any())
+    {
+        <div>
+            <h3>Dropped From Bosses</h3>
+            <div>
+                @foreach (var boss in Model.DroppedFromBosses.Take(3))
+                {
+                    <div>
+                        <img src="@boss.Sprite" />
+                        <span>@boss.Name</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.DroppedFromEntities.Any())
+    {
+        <div>
+            <h3>Dropped From Entities</h3>
+            <div style="display: flex; flex-direction: row; overflow-x: auto;">
+                @foreach (var entity in Model.DroppedFromEntities.Take(15))
+                {
+                    <div>
+                        <img src="@entity.Sprite" />
+                        <span>@entity.Name</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.TradedByNpcs.Any())
+    {
+        <div>
+            <h3>Traded By NPCs</h3>
+            <div style="display: flex; flex-direction: row; overflow-x: auto;">
+                @foreach (var trade in Model.TradedByNpcs.Take(3))
+                {
+                    <div>
+                        <img src="@trade.Sprite" />
+                        <span><strong>@trade.Name</strong></span>
+                        <span>Quantity: @trade.Quantity</span>
+                        <span>Total: @trade.TotalPrice</span>
+                        <span>Type: @trade.TradeType</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

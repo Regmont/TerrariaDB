@@ -9,15 +9,17 @@
 
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="Name" type="text" maxlength="50" required />
+            <label asp-for="Name"></label>
+            <input asp-for="Name" type="text" />
+            <span asp-validation-for="Name" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Description:</label>
-            <input asp-for="Description" type="text" maxlength="200" />
+            <label asp-for="Description"></label>
+            <input asp-for="Description" type="text" />
+            <span asp-validation-for="Description" class="text-danger"></span>
         </div>
     </div>
 
@@ -25,8 +27,9 @@
         <div style="display: flex; flex-direction: row;">
             <div class="town-stage" data-stage="0">
                 <div>
-                    <label>Sprite:</label>
-                    <input asp-for="Stages[0].Sprite" type="text" maxlength="500" required value="" />
+                    <label asp-for="Stages[0].Sprite">Sprite</label>
+                    <input asp-for="Stages[0].Sprite" type="text" />
+                    <span asp-validation-for="Stages[0].Sprite" class="text-danger"></span>
                 </div>
                 <div>
                     <label>HP:</label>
@@ -37,16 +40,18 @@
                     @Model.Stages[0].Defense
                 </div>
                 <div>
-                    <label>Game ID:</label>
-                    <input asp-for="Stages[0].EntityId" type="number" min="-500" max="1000" value="0" />
+                    <label asp-for="Stages[0].EntityId">Game ID</label>
+                    <input asp-for="Stages[0].EntityId" type="number" />
+                    <span asp-validation-for="Stages[0].EntityId" class="text-danger"></span>
                 </div>
             </div>
             @for (int i = 1; i < 4; i++)
             {
                 <div class="town-stage" data-stage="@i">
                     <div>
-                        <label>Sprite:</label>
-                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" value="" />
+                        <label asp-for="Stages[i].Sprite">Sprite</label>
+                        <input asp-for="Stages[i].Sprite" type="text" />
+                        <span asp-validation-for="Stages[i].Sprite" class="text-danger"></span>
                     </div>
                     <div>
                         <label>HP:</label>
@@ -57,8 +62,9 @@
                         @Model.Stages[i].Defense
                     </div>
                     <div>
-                        <label>Game ID:</label>
-                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" value="0" />
+                        <label asp-for="Stages[i].EntityId">Game ID</label>
+                        <input asp-for="Stages[i].EntityId" type="number" />
+                        <span asp-validation-for="Stages[i].EntityId" class="text-danger"></span>
                     </div>
                 </div>
             }
@@ -72,7 +78,8 @@
             {
                 <div class="town-drop" data-index="@i">
                     <select asp-for="Drops[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="Drops[i].Quantity" type="number" min="1" max="100" value="1" />
+                    <input asp-for="Drops[i].Quantity" type="number" />
+                    <span asp-validation-for="Drops[i].Quantity" class="text-danger"></span>
                     <button type="button" class="clear-town-drop" data-index="@i">Clear</button>
                 </div>
             }
@@ -86,8 +93,10 @@
             {
                 <div class="town-trade" data-index="@i">
                     <select asp-for="Trades[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="Trades[i].Quantity" type="number" min="1" max="50" value="1" />
-                    <select asp-for="Trades[i].TradeType" asp-items="Model.AvailableTradeTypes" required></select>
+                    <input asp-for="Trades[i].Quantity" type="number" />
+                    <span asp-validation-for="Trades[i].Quantity" class="text-danger"></span>
+                    <select asp-for="Trades[i].TradeType" asp-items="Model.AvailableTradeTypes"></select>
+                    <span asp-validation-for="Trades[i].TradeType" class="text-danger"></span>
                     <button type="button" class="clear-town-trade" data-index="@i">Clear</button>
                 </div>
             }
@@ -108,12 +117,12 @@
                 e.preventDefault();
                 const index = this.getAttribute('data-index');
                 const dropDiv = document.querySelector(`.town-drop[data-index="${index}"]`);
-                
+
                 const select = dropDiv.querySelector('select');
                 const input = dropDiv.querySelector('input[type="number"]');
-                
+
                 if (select) select.selectedIndex = 0;
-                if (input) input.value = input.getAttribute('value') || '1';
+                if (input) input.value = '1';
             });
         });
 
@@ -122,12 +131,12 @@
                 e.preventDefault();
                 const index = this.getAttribute('data-index');
                 const tradeDiv = document.querySelector(`.town-trade[data-index="${index}"]`);
-                
+
                 const selects = tradeDiv.querySelectorAll('select');
                 const input = tradeDiv.querySelector('input[type="number"]');
-                
+
                 selects.forEach(select => select.selectedIndex = 0);
-                if (input) input.value = input.getAttribute('value') || '1';
+                if (input) input.value = '1';
             });
         });
     </script>

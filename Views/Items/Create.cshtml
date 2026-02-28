@@ -5,47 +5,55 @@
 <a asp-action="Index">Back</a>
 
 <form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="Name" type="text" maxlength="50" required />
+            <label asp-for="Name"></label>
+            <input asp-for="Name" type="text" />
+            <span asp-validation-for="Name" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Description:</label>
-            <input asp-for="Description" type="text" maxlength="200" />
+            <label asp-for="Description"></label>
+            <input asp-for="Description" type="text" />
+            <span asp-validation-for="Description" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Base price:</label>
-            <input asp-for="BasePrice" type="number" min="0" max="500000000" value="0" />
+            <label asp-for="BasePrice"></label>
+            <input asp-for="BasePrice" type="number" />
+            <span asp-validation-for="BasePrice" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Currency Type:</label>
-            <select asp-for="CurrencyName" asp-items="Model.AvailableCurrencies" required></select>
+            <label asp-for="CurrencyName">Currency Type</label>
+            <select asp-for="CurrencyName" asp-items="Model.AvailableCurrencies"></select>
+            <span asp-validation-for="CurrencyName" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Crafting station:</label>
+            <label asp-for="CraftingStationName">Crafting station</label>
             <select asp-for="CraftingStationName" asp-items="Model.AvailableCraftingStations"></select>
         </div>
     </div>
 
     <div>
-        <label>Stages:</label>
+        <label>Stages</label>
+        <span asp-validation-for="StageItemIds" class="text-danger"></span>
         <div style="display: flex; flex-direction: row;">
             @for (int i = 0; i < 4; i++)
             {
-                <select asp-for="StageItemIds[i]" asp-items="Model.AvailableItems" required="@(i == 0)"></select>
+                <select asp-for="StageItemIds[i]" asp-items="Model.AvailableItems"></select>
+                <span asp-validation-for="StageItemIds[i]" class="text-danger"></span>
             }
         </div>
     </div>

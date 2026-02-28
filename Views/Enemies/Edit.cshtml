@@ -14,15 +14,17 @@
 
     <div>
         <div>
-            <label>Name:</label>
-            <input asp-for="Name" type="text" maxlength="50" required />
+            <label asp-for="Name"></label>
+            <input asp-for="Name" type="text" />
+            <span asp-validation-for="Name" class="text-danger"></span>
         </div>
     </div>
 
     <div>
         <div>
-            <label>Description:</label>
-            <input asp-for="Description" type="text" maxlength="200" />
+            <label asp-for="Description"></label>
+            <input asp-for="Description" type="text" />
+            <span asp-validation-for="Description" class="text-danger"></span>
         </div>
     </div>
 
@@ -32,24 +34,29 @@
             {
                 <div class="enemy-stage" data-stage="@i">
                     <div>
-                        <label>Sprite:</label>
-                        <input asp-for="Stages[i].Sprite" type="text" maxlength="500" required="@(i == 0)" />
+                        <label asp-for="Stages[i].Sprite">Sprite</label>
+                        <input asp-for="Stages[i].Sprite" type="text" />
+                        <span asp-validation-for="Stages[i].Sprite" class="text-danger"></span>
                     </div>
                     <div>
-                        <label>HP:</label>
-                        <input asp-for="Stages[i].Hp" type="number" min="0" max="30000" value="0" />
+                        <label asp-for="Stages[i].Hp">HP</label>
+                        <input asp-for="Stages[i].Hp" type="number" />
+                        <span asp-validation-for="Stages[i].Hp" class="text-danger"></span>
                     </div>
                     <div>
-                        <label>Defense:</label>
-                        <input asp-for="Stages[i].Defense" type="number" min="0" max="10000" value="0" />
+                        <label asp-for="Stages[i].Defense">Defense</label>
+                        <input asp-for="Stages[i].Defense" type="number" />
+                        <span asp-validation-for="Stages[i].Defense" class="text-danger"></span>
                     </div>
                     <div>
-                        <label>Game ID:</label>
-                        <input asp-for="Stages[i].EntityId" type="number" min="-500" max="1000" value="0" />
+                        <label asp-for="Stages[i].EntityId">Game ID</label>
+                        <input asp-for="Stages[i].EntityId" type="number" />
+                        <span asp-validation-for="Stages[i].EntityId" class="text-danger"></span>
                     </div>
                     <div>
-                        <label>Contact Damage:</label>
-                        <input asp-for="Stages[i].ContactDamage" type="number" min="0" max="1000" value="0" />
+                        <label asp-for="Stages[i].ContactDamage">Contact Damage</label>
+                        <input asp-for="Stages[i].ContactDamage" type="number" />
+                        <span asp-validation-for="Stages[i].ContactDamage" class="text-danger"></span>
                     </div>
                     <div>
                         <label>Drop</label>
@@ -58,7 +65,8 @@
                             {
                                 <div class="enemy-drop" data-stage="@i" data-drop="@j">
                                     <select asp-for="Stages[i].Drops[j].ItemId" asp-items="Model.AvailableItems"></select>
-                                    <input asp-for="Stages[i].Drops[j].Quantity" type="number" min="1" max="50" value="1" />
+                                    <input asp-for="Stages[i].Drops[j].Quantity" type="number" />
+                                    <span asp-validation-for="Stages[i].Drops[j].Quantity" class="text-danger"></span>
                                     <button type="button" class="clear-enemy-drop" data-stage="@i" data-drop="@j">Clear</button>
                                 </div>
                             }
@@ -84,10 +92,10 @@
                 const stage = this.getAttribute('data-stage');
                 const drop = this.getAttribute('data-drop');
                 const dropDiv = document.querySelector(`.enemy-drop[data-stage="${stage}"][data-drop="${drop}"]`);
-                
+
                 const select = dropDiv.querySelector('select');
                 const input = dropDiv.querySelector('input[type="number"]');
-                
+
                 if (select) select.selectedIndex = 0;
                 if (input) input.value = input.getAttribute('value') || '1';
             });

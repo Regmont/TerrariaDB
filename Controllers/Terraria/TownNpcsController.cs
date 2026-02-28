@@ -86,27 +86,50 @@ namespace TerrariaDB.Controllers.Terraria
                     TotalPrice = to.Item.BasePrice * to.Quantity,
                     TradeType = to.TradeType.TradeTypeName
                 }).ToList(),
-                Transformations = GetTransformations(townNpc.Entity.GameObject, townNpc)
+                Transformations = await GetTransformations(townNpc.Entity.GameObject)
             };
 
             return View(viewModel);
         }
 
-        private List<TownNpcTransformationViewModel> GetTransformations(GameObject gameObject, TownNpc townNpc)
+        private async Task<List<TownNpcTransformationViewModel>> GetTransformations(GameObject gameObject)
         {
             var transformations = new List<TownNpcTransformationViewModel>();
+
+            var firstStageNpc = await _context.TownNpc
+                .Include(t => t.Entity)
+                .FirstOrDefaultAsync(t => t.Entity.GameObjectName == gameObject.GameObjectName);
+
+            if (firstStageNpc != null)
+            {
+                transformations.Add(new TownNpcTransformationViewModel
+                {
+                    Name = gameObject.GameObjectName,
+                    Sprite = gameObject.Sprite,
+                    EntityId = firstStageNpc.EntityId.ToString(),
+                    Hp = firstStageNpc.Entity.Hp ?? 0,
+                    Defense = firstStageNpc.Entity.Defense
+                });
+            }
 
             var current = gameObject.Transform;
             while (current != null)
             {
-                transformations.Add(new TownNpcTransformationViewModel
+                var npcAtStage = await _context.TownNpc
+                    .Include(t => t.Entity)
+                    .FirstOrDefaultAsync(t => t.Entity.GameObjectName == current.GameObjectName);
+
+                if (npcAtStage != null)
                 {
-                    Name = current.GameObjectName,
-                    Sprite = current.Sprite,
-                    EntityId = townNpc.EntityId.ToString(),
-                    Hp = townNpc.Entity.Hp ?? 0,
-                    Defense = townNpc.Entity.Defense
-                });
+                    transformations.Add(new TownNpcTransformationViewModel
+                    {
+                        Name = current.GameObjectName,
+                        Sprite = current.Sprite,
+                        EntityId = npcAtStage.EntityId.ToString(),
+                        Hp = npcAtStage.Entity.Hp ?? 0,
+                        Defense = npcAtStage.Entity.Defense
+                    });
+                }
 
                 current = current.Transform;
             }
@@ -161,8 +184,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: TownNpcs/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -186,61 +207,94 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+            {
+                ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
+                return View(viewModel);
+            }
+
+            var filledStages = viewModel.Stages
+                .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                .ToList();
+
+            if (!filledStages.Any())
+            {
+                ModelState.AddModelError("", "At least one stage must be filled");
+                return View(viewModel);
+            }
+
+            foreach (var stage in filledStages)
+            {
+                if (stage.Hp < 0 || stage.Hp > 30000)
+                {
+                    ModelState.AddModelError("", "HP must be between 0 and 30000");
+                    return View(viewModel);
+                }
+                if (stage.Defense < 0 || stage.Defense > 10000)
+                {
+                    ModelState.AddModelError("", "Defense must be between 0 and 10000");
+                    return View(viewModel);
+                }
+                if (stage.EntityId < -500 || stage.EntityId > 1000)
+                {
+                    ModelState.AddModelError("", "Entity ID must be between -500 and 1000");
+                    return View(viewModel);
+                }
+            }
+
+            var allEntityIds = filledStages.Select(s => s.EntityId).ToList();
+            if (allEntityIds.Count != allEntityIds.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Entity IDs must be unique across all stages");
+                return View(viewModel);
+            }
+
+            foreach (var entityId in allEntityIds)
+            {
+                if (await _context.Entity.AnyAsync(e => e.EntityId == entityId))
+                {
+                    ModelState.AddModelError("", $"Entity ID {entityId} is already in use");
+                    return View(viewModel);
+                }
+            }
+
+            var allGameObjectNames = filledStages
+                .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
+                .ToList();
+
+            foreach (var name in allGameObjectNames)
+            {
+                if (await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                {
+                    ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                    return View(viewModel);
+                }
+            }
+
+            var allSprites = filledStages.Select(s => s.Sprite).ToList();
+            foreach (var sprite in allSprites)
+            {
+                if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                {
+                    ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                    return View(viewModel);
+                }
+            }
+
+            var validTrades = viewModel.Trades
+                .Where(t => !string.IsNullOrEmpty(t.ItemId) && !string.IsNullOrEmpty(t.TradeType) && t.Quantity > 0)
+                .ToList();
+
+            var tradeKeys = validTrades.Select(t => $"{t.ItemId}_{t.TradeType}").ToList();
+            if (tradeKeys.Count != tradeKeys.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Duplicate trades (same item and trade type) are not allowed");
+                return View(viewModel);
+            }
+
             if (ModelState.IsValid)
             {
-                var filledStages = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .ToList();
-
-                if (!filledStages.Any())
-                {
-                    ModelState.AddModelError("", "At least one stage must be filled");
-                    return View(viewModel);
-                }
-
-                var allEntityIds = filledStages.Select(s => s.EntityId).ToList();
-                if (allEntityIds.Count != allEntityIds.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Entity IDs must be unique across all stages");
-                    return View(viewModel);
-                }
-
-                var allGameObjectNames = filledStages
-                    .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
-                    .ToList();
-
-                foreach (var name in allGameObjectNames)
-                {
-                    if (await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
-                    {
-                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var allSprites = filledStages.Select(s => s.Sprite).ToList();
-                foreach (var sprite in allSprites)
-                {
-                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var validTrades = viewModel.Trades
-                    .Where(t => !string.IsNullOrEmpty(t.ItemId) && !string.IsNullOrEmpty(t.TradeType) && t.Quantity > 0)
-                    .ToList();
-
-                var tradeKeys = validTrades.Select(t => $"{t.ItemId}_{t.TradeType}").ToList();
-                if (tradeKeys.Count != tradeKeys.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Duplicate trades (same item and trade type) are not allowed");
-                    return View(viewModel);
-                }
-
                 GameObject? previousGameObject = null;
-                Entity? previousEntity = null;
 
                 for (int i = 0; i < filledStages.Count; i++)
                 {
@@ -256,7 +310,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.GameObject.Add(gameObject);
-                    await _context.SaveChangesAsync();
 
                     var entity = new Entity
                     {
@@ -267,7 +320,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.Entity.Add(entity);
-                    await _context.SaveChangesAsync();
 
                     var townNpc = new TownNpc
                     {
@@ -275,7 +327,6 @@ namespace TerrariaDB.Controllers.Terraria
                     };
 
                     _context.TownNpc.Add(townNpc);
-                    await _context.SaveChangesAsync();
 
                     if (i == 0)
                     {
@@ -289,10 +340,7 @@ namespace TerrariaDB.Controllers.Terraria
                             };
                             _context.EntityDrop.Add(entityDrop);
                         }
-                    }
 
-                    if (i == 0)
-                    {
                         foreach (var trade in validTrades)
                         {
                             var tradeOffer = new TradeOffer
@@ -307,7 +355,6 @@ namespace TerrariaDB.Controllers.Terraria
                     }
 
                     previousGameObject = gameObject;
-                    previousEntity = entity;
                 }
 
                 await _context.SaveChangesAsync();
@@ -319,21 +366,21 @@ namespace TerrariaDB.Controllers.Terraria
 
         // GET: TownNpcs/Edit/5
         [Authorize(Roles = "Admin")]
-        public IActionResult Edit(byte id)
+        public async Task<IActionResult> Edit(byte id)
         {
-            var townNpc = _context.TownNpc
+            var townNpc = await _context.TownNpc
                 .Include(tn => tn.Entity)
                     .ThenInclude(e => e.GameObject)
                 .Include(tn => tn.Entity)
                     .ThenInclude(e => e.EntityDrops)
-                    .ThenInclude(ed => ed.Item)
-                    .ThenInclude(i => i.GameObject)
+                        .ThenInclude(ed => ed.Item)
+                            .ThenInclude(i => i.GameObject)
                 .Include(tn => tn.TradeOffers)
                     .ThenInclude(to => to.Item)
-                    .ThenInclude(i => i.GameObject)
+                        .ThenInclude(i => i.GameObject)
                 .Include(tn => tn.TradeOffers)
                     .ThenInclude(to => to.TradeType)
-                .FirstOrDefault(tn => tn.TownNpcId == id);
+                .FirstOrDefaultAsync(tn => tn.TownNpcId == id);
 
             if (townNpc == null)
             {
@@ -365,21 +412,38 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            var stages = new List<(GameObject go, Entity entity, TownNpc npc)>();
+            var current = townNpc.Entity.GameObject;
+            while (current != null)
+            {
+                var npcAtStage = await _context.TownNpc
+                    .Include(t => t.Entity)
+                    .FirstOrDefaultAsync(t => t.Entity.GameObjectName == current.GameObjectName);
+
+                if (npcAtStage != null)
+                {
+                    stages.Add((current, npcAtStage.Entity, npcAtStage));
+                }
+                current = await _context.GameObject
+                    .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+            }
+
             for (int i = 0; i < 4; i++)
             {
                 var stage = new TownNpcEditStageViewModel();
 
-                if (i == 0)
+                if (i < stages.Count)
                 {
-                    stage.Sprite = townNpc.Entity.GameObject.Sprite;
-                    stage.Hp = townNpc.Entity.Hp ?? 250;
-                    stage.Defense = townNpc.Entity.Defense;
-                    stage.EntityId = townNpc.Entity.EntityId;
+                    var (go, entity, npc) = stages[i];
+                    stage.Sprite = go.Sprite;
+                    stage.Hp = entity.Hp ?? DefaultHp;
+                    stage.Defense = entity.Defense;
+                    stage.EntityId = entity.EntityId;
                 }
                 else
                 {
-                    stage.Hp = 250;
-                    stage.Defense = 15;
+                    stage.Hp = DefaultHp;
+                    stage.Defense = DefaultDefense;
                 }
 
                 viewModel.Stages.Add(stage);
@@ -414,8 +478,6 @@ namespace TerrariaDB.Controllers.Terraria
         }
 
         // POST: TownNpcs/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -439,142 +501,190 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+            {
+                ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
+                return View(viewModel);
+            }
+
+            var filledStages = viewModel.Stages
+                .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                .ToList();
+
+            if (!filledStages.Any())
+            {
+                ModelState.AddModelError("", "At least one stage must be filled");
+                return View(viewModel);
+            }
+
+            foreach (var stage in filledStages)
+            {
+                if (stage.Hp < 0 || stage.Hp > 30000)
+                {
+                    ModelState.AddModelError("", "HP must be between 0 and 30000");
+                    return View(viewModel);
+                }
+                if (stage.Defense < 0 || stage.Defense > 10000)
+                {
+                    ModelState.AddModelError("", "Defense must be between 0 and 10000");
+                    return View(viewModel);
+                }
+                if (stage.EntityId < -500 || stage.EntityId > 1000)
+                {
+                    ModelState.AddModelError("", "Entity ID must be between -500 and 1000");
+                    return View(viewModel);
+                }
+            }
+
+            var allEntityIds = filledStages.Select(s => s.EntityId).ToList();
+            if (allEntityIds.Count != allEntityIds.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Entity IDs must be unique across all stages");
+                return View(viewModel);
+            }
+
+            var originalTownNpc = await _context.TownNpc
+                .Include(t => t.Entity)
+                    .ThenInclude(e => e.GameObject)
+                .Include(t => t.Entity)
+                    .ThenInclude(e => e.EntityDrops)
+                .Include(t => t.TradeOffers)
+                .FirstOrDefaultAsync(t => t.TownNpcId == byte.Parse(viewModel.TownNpcId));
+
+            if (originalTownNpc == null)
+            {
+                return NotFound();
+            }
+
+            var existingStages = new List<(GameObject go, Entity entity, TownNpc npc)>();
+            var current = originalTownNpc.Entity.GameObject;
+            while (current != null)
+            {
+                var npcAtStage = await _context.TownNpc
+                    .Include(t => t.Entity)
+                    .FirstOrDefaultAsync(t => t.Entity.GameObjectName == current.GameObjectName);
+
+                if (npcAtStage != null)
+                {
+                    existingStages.Add((current, npcAtStage.Entity, npcAtStage));
+                }
+                current = await _context.GameObject
+                    .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+            }
+
+            var allGameObjectNames = filledStages
+                .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
+                .ToList();
+
+            var existingNames = existingStages.Select(s => s.go.GameObjectName).ToList();
+            for (int i = 0; i < allGameObjectNames.Count; i++)
+            {
+                var name = allGameObjectNames[i];
+                if (!existingNames.Contains(name) &&
+                    await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                {
+                    ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                    return View(viewModel);
+                }
+            }
+
+            var allSprites = filledStages.Select(s => s.Sprite).ToList();
+            var existingSprites = existingStages.Select(s => s.go.Sprite).ToList();
+            for (int i = 0; i < allSprites.Count; i++)
+            {
+                var sprite = allSprites[i];
+                if (!existingSprites.Contains(sprite) &&
+                    await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                {
+                    ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                    return View(viewModel);
+                }
+            }
+
+            var existingEntityIds = existingStages.Select(s => s.entity.EntityId).ToList();
+            foreach (var entityId in allEntityIds)
+            {
+                if (!existingEntityIds.Contains(entityId) &&
+                    await _context.Entity.AnyAsync(e => e.EntityId == entityId))
+                {
+                    ModelState.AddModelError("", $"Entity ID {entityId} is already in use");
+                    return View(viewModel);
+                }
+            }
+
+            var validTrades = viewModel.Trades
+                .Where(t => !string.IsNullOrEmpty(t.ItemId) && !string.IsNullOrEmpty(t.TradeType) && t.Quantity > 0)
+                .ToList();
+
+            var tradeKeys = validTrades.Select(t => $"{t.ItemId}_{t.TradeType}").ToList();
+            if (tradeKeys.Count != tradeKeys.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Duplicate trades (same item and trade type) are not allowed");
+                return View(viewModel);
+            }
+
             if (ModelState.IsValid)
             {
-                var originalTownNpc = await _context.TownNpc
-                    .Include(t => t.Entity)
-                        .ThenInclude(e => e.GameObject)
-                    .Include(t => t.Entity)
-                        .ThenInclude(e => e.EntityDrops)
-                    .Include(t => t.TradeOffers)
-                    .FirstOrDefaultAsync(t => t.TownNpcId == byte.Parse(viewModel.TownNpcId));
-
-                if (originalTownNpc == null)
-                {
-                    return NotFound();
-                }
-
-                var existingGameObjects = new List<GameObject>();
-                var current = originalTownNpc.Entity.GameObject;
-                while (current != null)
-                {
-                    existingGameObjects.Add(current);
-                    current = await _context.GameObject
-                        .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
-                }
-
-                var filledStages = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .ToList();
-
-                if (!filledStages.Any())
-                {
-                    ModelState.AddModelError("", "At least one stage must be filled");
-                    return View(viewModel);
-                }
-
-                var allEntityIds = filledStages.Select(s => s.EntityId).ToList();
-                if (allEntityIds.Count != allEntityIds.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Entity IDs must be unique across all stages");
-                    return View(viewModel);
-                }
-
-                var allGameObjectNames = filledStages
-                    .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
-                    .ToList();
-
-                foreach (var name in allGameObjectNames)
-                {
-                    if (!existingGameObjects.Any(go => go.GameObjectName == name) &&
-                        await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
-                    {
-                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var allSprites = filledStages.Select(s => s.Sprite).ToList();
-                foreach (var sprite in allSprites)
-                {
-                    if (!existingGameObjects.Any(go => go.Sprite == sprite) &&
-                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var validTrades = viewModel.Trades
-                    .Where(t => !string.IsNullOrEmpty(t.ItemId) && !string.IsNullOrEmpty(t.TradeType) && t.Quantity > 0)
-                    .ToList();
-
-                var tradeKeys = validTrades.Select(t => $"{t.ItemId}_{t.TradeType}").ToList();
-                if (tradeKeys.Count != tradeKeys.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Duplicate trades (same item and trade type) are not allowed");
-                    return View(viewModel);
-                }
-
                 _context.TradeOffer.RemoveRange(originalTownNpc.TradeOffers);
 
-                foreach (var go in existingGameObjects)
-                {
-                    var entity = await _context.Entity
-                        .Include(e => e.EntityDrops)
-                        .Include(e => e.TownNpc)
-                        .FirstOrDefaultAsync(e => e.GameObjectName == go.GameObjectName);
-
-                    if (entity != null)
-                    {
-                        _context.EntityDrop.RemoveRange(entity.EntityDrops);
-                        if (entity.TownNpc != null)
-                        {
-                            _context.TownNpc.Remove(entity.TownNpc);
-                        }
-                        _context.Entity.Remove(entity);
-                    }
-                    _context.GameObject.Remove(go);
-                }
-                await _context.SaveChangesAsync();
-
                 GameObject? previousGameObject = null;
-                Entity? previousEntity = null;
 
                 for (int i = 0; i < filledStages.Count; i++)
                 {
                     var stage = filledStages[i];
                     var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
 
-                    var gameObject = new GameObject
+                    GameObject gameObject;
+                    Entity entity;
+                    TownNpc townNpc;
+
+                    if (i < existingStages.Count)
                     {
-                        GameObjectName = gameObjectName,
-                        Description = i == 0 ? viewModel.Description : null,
-                        Sprite = stage.Sprite,
-                        TransformName = previousGameObject?.GameObjectName
-                    };
+                        (gameObject, entity, townNpc) = existingStages[i];
 
-                    _context.GameObject.Add(gameObject);
-                    await _context.SaveChangesAsync();
+                        gameObject.GameObjectName = gameObjectName;
+                        gameObject.Description = i == 0 ? viewModel.Description : null;
+                        gameObject.Sprite = stage.Sprite;
+                        gameObject.TransformName = previousGameObject?.GameObjectName;
 
-                    var entity = new Entity
+                        entity.EntityId = stage.EntityId;
+                        entity.Hp = stage.Hp;
+                        entity.Defense = (short)stage.Defense;
+
+                        _context.GameObject.Update(gameObject);
+                        _context.Entity.Update(entity);
+
+                        var oldDrops = await _context.EntityDrop
+                            .Where(ed => ed.EntityId == entity.EntityId)
+                            .ToListAsync();
+                        _context.EntityDrop.RemoveRange(oldDrops);
+                    }
+                    else
                     {
-                        EntityId = stage.EntityId,
-                        GameObjectName = gameObject.GameObjectName,
-                        Hp = stage.Hp,
-                        Defense = (short)stage.Defense
-                    };
+                        gameObject = new GameObject
+                        {
+                            GameObjectName = gameObjectName,
+                            Description = i == 0 ? viewModel.Description : null,
+                            Sprite = stage.Sprite,
+                            TransformName = previousGameObject?.GameObjectName
+                        };
+                        _context.GameObject.Add(gameObject);
 
-                    _context.Entity.Add(entity);
-                    await _context.SaveChangesAsync();
+                        entity = new Entity
+                        {
+                            EntityId = stage.EntityId,
+                            GameObjectName = gameObject.GameObjectName,
+                            Hp = stage.Hp,
+                            Defense = (short)stage.Defense
+                        };
+                        _context.Entity.Add(entity);
 
-                    var townNpc = new TownNpc
-                    {
-                        EntityId = entity.EntityId
-                    };
-
-                    _context.TownNpc.Add(townNpc);
-                    await _context.SaveChangesAsync();
+                        townNpc = new TownNpc
+                        {
+                            EntityId = entity.EntityId
+                        };
+                        _context.TownNpc.Add(townNpc);
+                    }
 
                     if (i == 0)
                     {
@@ -606,7 +716,20 @@ namespace TerrariaDB.Controllers.Terraria
                     }
 
                     previousGameObject = gameObject;
-                    previousEntity = entity;
+                }
+
+                for (int i = filledStages.Count; i < existingStages.Count; i++)
+                {
+                    var (go, entity, npc) = existingStages[i];
+
+                    var drops = await _context.EntityDrop
+                        .Where(ed => ed.EntityId == entity.EntityId)
+                        .ToListAsync();
+                    _context.EntityDrop.RemoveRange(drops);
+
+                    _context.TownNpc.Remove(npc);
+                    _context.Entity.Remove(entity);
+                    _context.GameObject.Remove(go);
                 }
 
                 await _context.SaveChangesAsync();
