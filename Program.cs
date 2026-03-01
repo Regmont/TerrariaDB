@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using TerrariaDB.Data;
 
 namespace TerrariaDB
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -17,9 +16,9 @@ namespace TerrariaDB
                 options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
-            builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
 
@@ -39,19 +38,15 @@ namespace TerrariaDB
 
             app.UseRouting();
 
-            //admin testing
-            app.Use(async (context, next) =>
+            using (var scope = app.Services.CreateScope())
             {
-                var identity = new ClaimsIdentity(new[]
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+                if (!await roleManager.RoleExistsAsync("Admin"))
                 {
-                    new Claim(ClaimTypes.Name, "TestUser"),
-                    new Claim(ClaimTypes.Role, "Admin")
-                }, "Test");
-
-                context.User = new ClaimsPrincipal(identity);
-
-                await next();
-            });
+                    await roleManager.CreateAsync(new IdentityRole("Admin"));
+                }
+            }
 
             app.UseAuthorization();
 
