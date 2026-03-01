@@ -1,22 +1,141 @@
-html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #1a1f2e;
+    overflow-x: hidden;
 }
 
 body {
-  margin-bottom: 60px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #1a1f2e;
+    font-family: 'Courier New', monospace;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.terraria-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: #2a1e14;
+    border-bottom: 4px solid #8b6b4d;
+    box-shadow: 0 4px 0 #4a3c2c;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.terraria-logo {
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 3px 3px 0 #8b4513;
+    text-decoration: none;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+    .terraria-logo:hover {
+        color: #ffd700;
+        text-shadow: 4px 4px 0 #a0522d;
+    }
+
+.auth-container {
+    display: flex;
+    align-items: center;
+}
+
+    .auth-container .navbar-nav {
+        display: flex;
+        gap: 15px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .auth-container .nav-link,
+    .auth-container .btn-link {
+        color: #c0a88c;
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+        text-transform: uppercase;
+        padding: 8px 15px;
+        border: 2px solid #8b6b4d;
+        background: #3a2c20;
+        text-shadow: 1px 1px 0 #2a1e14;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+    }
+
+        .auth-container .nav-link:hover,
+        .auth-container .btn-link:hover {
+            color: #ffd700;
+            border-color: #c0a88c;
+            background: #4a3c2c;
+        }
+
+.terraria-card {
+    background: linear-gradient(145deg, #3a2c20 0%, #2a1e14 100%);
+    border: 4px solid #8b6b4d;
+    box-shadow: 0 8px 0 #4a3c2c;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #f0e0c0;
+    text-decoration: none;
+    position: relative;
+    box-sizing: border-box;
+    cursor: pointer;
+    padding: 20px;
+    width: 100%;
+}
+
+    .terraria-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 0 #4a3c2c;
+        border-color: #c0a88c;
+        background: linear-gradient(145deg, #4a3c2c 0%, #3a2c1e 100%);
+    }
+
+    .terraria-card .card-title {
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #ffd700;
+        text-shadow: 3px 3px 0 #8b4513;
+        text-align: center;
+        font-size: 14px;
+        margin-top: 15px;
+    }
+
+    .terraria-card .card-icon {
+        width: 64px;
+        height: 64px;
+        image-rendering: pixelated;
+        background: #2a1e14;
+        border: 3px solid #6b4f35;
+        padding: 10px;
+        box-shadow: inset 0 0 0 2px #1a140e;
+        box-sizing: border-box;
+    }
+        
+@media (max-width: 768px) {
+    .terraria-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .auth-container .navbar-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 }

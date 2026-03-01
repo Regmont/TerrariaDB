@@ -1,0 +1,81 @@
+﻿.terraria-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 80px 190px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 160px 50px, #aaa, rgba(0,0,0,0)), radial-gradient(2px 2px at 250px 400px, #ffd700, rgba(0,0,0,0)), radial-gradient(2px 2px at 350px 150px, #fff, rgba(0,0,0,0)), radial-gradient(3px 3px at 450px 280px, #87ceeb, rgba(0,0,0,0)), radial-gradient(2px 2px at 550px 420px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 680px 90px, #ffa07a, rgba(0,0,0,0)), radial-gradient(3px 3px at 720px 380px, #fff, rgba(0,0,0,0));
+    background-repeat: repeat;
+    background-size: 800px 600px;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.terraria-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+    color: #e8e8e8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+    .header h1 {
+        font-size: 48px;
+        font-weight: bold;
+        color: #ffd700;
+        text-shadow: 4px 4px 0 #8b4513, 6px 6px 0 #4a2c0f, 8px 8px 0 rgba(0,0,0,0.5);
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+    }
+
+        .header h1 span {
+            color: #87ceeb;
+            text-shadow: 4px 4px 0 #2a4b6e;
+        }
+
+.hero-section {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    background: rgba(26, 31, 46, 0.7);
+    padding: 30px;
+    border: 4px solid #8b6b4d;
+    box-shadow: 0 8px 0 #4a3c2c;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.description-container {
+    flex: 1;
+}
+
+.hero-text {
+    font-size: 18px;
+    color: #c0a88c;
+    line-height: 1.6;
+    text-shadow: 2px 2px 0 #2a1e14;
+    margin: 0;
+}
+
+.recipe-card-wrapper {
+    width: 200px;
+    flex-shrink: 0;
+}
+
+.main-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    width: 100%;
+}

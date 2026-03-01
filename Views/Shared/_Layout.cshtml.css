@@ -1,48 +1,127 @@
-﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-for details on configuring this project to bundle and minify static web assets. */
-
-a.navbar-brand {
-  white-space: normal;
-  text-align: center;
-  word-break: break-all;
+﻿.body-horizontal {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    flex: 1 0 auto;
+    background: #1a1f2e;
+    gap: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
-a {
-  color: #0077cc;
+.main-content {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+.registries-sidebar {
+    width: 250px;
+    flex-shrink: 0;
 }
 
-.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+.sidebar-title {
+    font-size: 16px;
+    color: #c0a88c;
+    text-align: center;
+    text-shadow: 2px 2px 0 #4a3c2c;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #8b6b4d;
 }
 
-.border-top {
-  border-top: 1px solid #e5e5e5;
-}
-.border-bottom {
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.box-shadow {
-  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
-}
-
-button.accept-policy {
-  font-size: 1rem;
-  line-height: inherit;
+.vertical-scrollbar-container {
+    max-height: 480px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    background: rgba(26, 31, 46, 0.5);
+    border: 2px solid #8b6b4d;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-.footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
+    .vertical-scrollbar-container::-webkit-scrollbar {
+        width: 12px;
+        background: #2a1e14;
+    }
+
+    .vertical-scrollbar-container::-webkit-scrollbar-thumb {
+        background: #8b6b4d;
+        border: 2px solid #4a3c2c;
+    }
+
+.registry-card {
+    display: block;
+    padding: 15px 20px;
+    background: #3a2c20;
+    border: 2px solid #8b6b4d;
+    text-decoration: none;
+    color: #c0a88c;
+    box-shadow: 0 4px 0 #4a3c2c;
+    transition: all 0.1s ease;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 0 #2a1e14;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
+
+    .registry-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 #4a3c2c;
+        border-color: #c0a88c;
+        color: #ffd700;
+        background: #4a3c2c;
+    }
+
+    .registry-card .card-title {
+        font-size: 16px;
+    }
+
+    .registry-card .admin-badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #b22222;
+        color: white;
+        font-size: 10px;
+        padding: 2px 6px;
+        border: 1px solid #ffd700;
+        font-weight: bold;
+    }
+
+.terraria-footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: #2a1e14;
+    border-top: 4px solid #8b6b4d;
+    box-shadow: 0 -4px 0 #4a3c2c;
+    color: #8b6b4d;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+    .terraria-footer .contact {
+        color: #c0a88c;
+    }
+
+    .terraria-footer a {
+        color: #ffd700;
+        text-decoration: none;
+    }
+
+        .terraria-footer a:hover {
+            text-decoration: underline;
+        }
