@@ -4,58 +4,122 @@
     ViewData["Title"] = "Town NPC Details";
 }
 
-<h1>Town NPC Details</h1>
-
-<div>
-    <a asp-action="Index">Back</a>
-    @if (User.IsInRole("Admin"))
-    {
-        <a asp-action="Edit" asp-route-id="@Model.TownNpcId">Edit</a>
-        <a asp-action="Delete" asp-route-id="@Model.TownNpcId">Delete</a>
-    }
-</div>
-
-<span>@Model.Name</span>
-
-<span>@Model.Description</span>
-
-<div style="display: flex; flex-direction: row;">
-    @foreach (var transformation in Model.Transformations.Take(4))
-    {
-        <div style="display: flex; flex-direction: column;">
-            <img src="@transformation.Sprite"/>
-            <span>@transformation.Hp</span>
-            <span>@transformation.Defense</span>
-            <span>@transformation.EntityId</span>
-        </div>
-    }
-</div>
-
-<div>
-    <span>Drop</span>
-    <div style="display: flex; flex-direction: row; overflow-x: auto;">
-        @foreach (var drop in Model.Drops.Take(5))
-        {
-            <div style="display: flex; flex-direction: column;">
-                <img src="@drop.Sprite"/>
-                <span>@drop.Name</span>
-                <span>@drop.Quantity</span>
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-person"></i> @Model.Name
+            </h4>
+            <div>
+                <a asp-action="Index" class="btn btn-outline-light btn-sm me-2">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.TownNpcId" class="btn btn-warning btn-sm me-2">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@Model.TownNpcId" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                }
             </div>
-        }
-    </div>
-</div>
-
-<span>Trades</span>
-
-<div style="display: flex; flex-direction: row; overflow-x: auto;">
-    @foreach (var trade in Model.Trades.Take(15))
-    {
-        <div style="display: flex; flex-direction: column;">
-            <img src="@trade.Sprite"/>
-            <span>@trade.Name</span>
-            <span>@trade.Quantity</span>
-            <span>@trade.TotalPrice</span>
-            <span>@trade.TradeType</span>
         </div>
-    }
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-2 text-center">
+                    <img src="@Model.Sprite" alt="@Model.Name" class="img-fluid border rounded bg-light p-2" style="max-height: 100px;" />
+                </div>
+                <div class="col-md-10">
+                    <h5 class="text-muted mb-3">@Model.Description</h5>
+                </div>
+            </div>
+
+            <h5 class="border-bottom pb-2 mb-3">Stages</h5>
+            <div class="row g-4 mb-4">
+                @foreach (var transformation in Model.Transformations)
+                {
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-dark text-white">
+                                <h6 class="mb-0">@transformation.Name</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <img src="@transformation.Sprite" alt="@transformation.Name" class="img-fluid border rounded" style="max-height: 60px;" />
+                                </div>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="small text-muted">Game ID</div>
+                                        <strong>@transformation.EntityId</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="small text-muted">HP</div>
+                                        <strong>@transformation.Hp</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="small text-muted">Defense</div>
+                                        <strong>@transformation.Defense</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (Model.Drops.Any())
+            {
+                <h5 class="border-bottom pb-2 mb-3">Drops</h5>
+                <div class="row flex-nowrap overflow-auto pb-3 mb-4" style="gap: 1rem;">
+                    @foreach (var drop in Model.Drops)
+                    {
+                        <div class="col-auto">
+                            <div class="card text-center" style="width: 100px;">
+                                <img src="@drop.Sprite" class="card-img-top p-2" alt="@drop.Name" style="height: 60px; object-fit: contain;" />
+                                <div class="card-body p-2">
+                                    <small class="card-text text-truncate d-block">@drop.Name</small>
+                                    <span class="badge bg-secondary">x@(drop.Quantity)</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Model.Trades.Any())
+            {
+                <h5 class="border-bottom pb-2 mb-3">Trades</h5>
+                <div class="row flex-nowrap overflow-auto pb-2" style="gap: 1rem;">
+                    @foreach (var trade in Model.Trades)
+                    {
+                        <div class="col-auto" style="min-width: 180px;">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <img src="@trade.Sprite" alt="@trade.Name" style="width: 40px; height: 40px; object-fit: contain;" />
+                                        <strong class="text-truncate">@trade.Name</strong>
+                                    </div>
+                                    <div class="small">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Quantity:</span>
+                                            <span class="fw-bold">@trade.Quantity</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total:</span>
+                                            <span class="fw-bold">@trade.TotalPrice</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Type:</span>
+                                            <span class="badge bg-info">@trade.TradeType</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
 </div>

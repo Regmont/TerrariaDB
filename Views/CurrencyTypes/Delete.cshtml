@@ -4,22 +4,45 @@
     ViewData["Title"] = "Delete Currency Type";
 }
 
-<h1>Delete Currency Type</h1>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Delete Currency Type</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Are you sure you want to delete this currency type?
+                    </div>
 
-<a asp-action="Index">Back</a>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Currency Name</label>
+                        <div class="form-control bg-light">@Model.CurrencyName</div>
+                    </div>
 
-<div>
-    <div>
-        <span>@Model.CurrencyName</span>
+                    @if (Model.HasRelatedItems)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i>
+                            This currency type can't be deleted because there are items that use it!
+                        </div>
+                    }
+
+                    <form asp-action="Delete" method="post">
+                        <input type="hidden" asp-for="CurrencyName" />
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger" disabled="@Model.HasRelatedItems">
+                                <i class="bi bi-trash"></i> Confirm Delete
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-
-    @if (Model.HasRelatedItems)
-    {
-        <div>This currency type can't be deleted because there are some items that use it!</div>
-    }
-
-    <form asp-action="Delete" method="post">
-        <input type="hidden" asp-for="CurrencyName" />
-        <button type="submit" disabled="@Model.HasRelatedItems">Confirm</button>
-    </form>
 </div>

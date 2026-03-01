@@ -9,103 +9,142 @@
     var currentCraftingStation = Context.Request.Query["craftingStation"].ToString();
 }
 
-<h1>Recipes</h1>
-
-<div>
-    <a asp-action="Index" asp-controller="Home">Back</a>
-    @if (User.IsInRole("Admin"))
-    {
-        <a asp-action="Create">Create</a>
-    }
-</div>
-
-<div>
-    <form id="filterForm" method="get" action="@Url.Action("Index")">
-        <table>
-            <thead>
-                <tr>
-                    <th>Result Item</th>
-                    <th>Ingredients</th>
-                    <th>Crafting Station</th>
-                    <th>
-                        <a href="@Url.Action("Index")" role="button">Clear Filters</a>
-                    </th>
-                </tr>
-                <tr>
-                    <td>
-                        <div style="display: flex; flex-direction: row;">
-                            <select name="resultItem" asp-items="Model.ResultItemFilterOptions" onchange="this.form.submit()">
-                                <option value="">All</option>
-                            </select>
-                        </div>
-                    </td>
-                    <td>
-                        <div style="display: flex; flex-direction: row;">
-                            <select name="ingredient1" asp-items="Model.IngredientFilterOptions" onchange="this.form.submit()">
-                                <option value="">All</option>
-                            </select>
-                            <select name="ingredient2" asp-items="Model.IngredientFilterOptions" onchange="this.form.submit()">
-                                <option value="">All</option>
-                            </select>
-                        </div>
-                    </td>
-                    <td>
-                        <select name="craftingStation" asp-items="Model.CraftingStationFilterOptions" onchange="this.form.submit()">
-                            <option value="">All</option>
-                        </select>
-                    </td>
-                    <td></td>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var recipe in Model.Recipes)
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-book"></i> Recipes
+            </h4>
+            <div>
+                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-light btn-sm me-2">
+                    <i class="bi bi-house"></i> Home
+                </a>
+                @if (User.IsInRole("Admin"))
                 {
-                    <tr>
-                        <td>
-                            <div style="display: flex; flex-direction: row;">
-                                <div style="display: flex; flex-direction: column;">
-                                    <img src="@recipe.ResultItem.Sprite" alt="@recipe.ResultItem.Name" />
-                                    <span>@recipe.ResultItem.Name</span>
-                                    <span>@recipe.ResultItemQuantity</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div style="display: flex; flex-direction: row;">
-                                @foreach (var ingredient in recipe.Ingredients)
-                                {
-                                    <div style="display: flex; flex-direction: column;">
-                                        <img src="@ingredient.Sprite" alt="@ingredient.Name" />
-                                        <span>@ingredient.Name</span>
-                                        <span>@ingredient.Quantity</span>
-                                    </div>
-                                }
-                            </div>
-                        </td>
-                        <td>
-                            @if (recipe.CraftingStation != null)
-                            {
-                                <div style="display: flex; flex-direction: column;">
-                                    <img src="@recipe.CraftingStation.Sprite" alt="@recipe.CraftingStation.Name" />
-                                    <span>@recipe.CraftingStation.Name</span>
-                                </div>
-                            }
-                        </td>
-                        <td>
-                            <div style="display: flex; flex-direction: row;">
-                                <a asp-action="Details" asp-route-id="@recipe.Id">Details</a>
-                                @if (User.IsInRole("Admin"))
-                                {
-                                    <a asp-action="Edit" asp-route-id="@recipe.Id">Edit</a>
-                                    <a asp-action="Delete" asp-route-id="@recipe.Id">Delete</a>
-                                }
-                            </div>
-                        </td>
-                    </tr>
+                    <a asp-action="Create" class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Create New
+                    </a>
                 }
-            </tbody>
-        </table>
-    </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get" action="@Url.Action("Index")" class="mb-4">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Result Item</label>
+                                <select name="resultItem" asp-items="Model.ResultItemFilterOptions" class="form-select" onchange="this.form.submit()">
+                                    <option value="">All</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Ingredients</label>
+                                <div class="d-flex gap-2">
+                                    <select name="ingredient1" asp-items="Model.IngredientFilterOptions" class="form-select" onchange="this.form.submit()">
+                                        <option value="">All</option>
+                                    </select>
+                                    <select name="ingredient2" asp-items="Model.IngredientFilterOptions" class="form-select" onchange="this.form.submit()">
+                                        <option value="">All</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Crafting Station</label>
+                                <select name="craftingStation" asp-items="Model.CraftingStationFilterOptions" class="form-select" onchange="this.form.submit()">
+                                    <option value="">All</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <a href="@Url.Action("Index")" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-eraser"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            @if (!Model.Recipes.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    No recipes found.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 200px;">Result</th>
+                                <th>Ingredients</th>
+                                <th style="width: 200px;">Crafting Station</th>
+                                <th style="width: 150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var recipe in Model.Recipes)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <img src="@recipe.ResultItem.Sprite" alt="@recipe.ResultItem.Name" style="width: 40px; height: 40px; object-fit: contain;" />
+                                            <div>
+                                                <div class="fw-bold">@recipe.ResultItem.Name</div>
+                                                <small class="text-muted">x@(recipe.ResultItemQuantity)</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var ingredient in recipe.Ingredients)
+                                            {
+                                                <div class="d-flex align-items-center bg-light rounded p-1" style="min-width: 100px;">
+                                                    <img src="@ingredient.Sprite" alt="@ingredient.Name" style="width: 30px; height: 30px; object-fit: contain;" />
+                                                    <div class="ms-1 small">
+                                                        <div class="text-truncate" style="max-width: 80px;">@ingredient.Name</div>
+                                                        <span class="fw-bold">x@(ingredient.Quantity)</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (recipe.CraftingStation != null)
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@recipe.CraftingStation.Sprite" alt="@recipe.CraftingStation.Name" style="width: 30px; height: 30px; object-fit: contain;" />
+                                                <span>@recipe.CraftingStation.Name</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Any</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            @if (User.IsInRole("Admin"))
+                                            {
+                                                <a asp-action="Edit" asp-route-id="@recipe.Id" class="btn btn-warning" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a asp-action="Delete" asp-route-id="@recipe.Id" class="btn btn-danger" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
 <script>

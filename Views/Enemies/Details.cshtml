@@ -4,42 +4,93 @@
     ViewData["Title"] = "Enemy Details";
 }
 
-<h1>Enemy Details</h1>
-
-<div>
-    <a asp-action="Index">Back</a>
-    @if (User.IsInRole("Admin"))
-    {
-        <a asp-action="Edit" asp-route-id="@Model.EnemyId">Edit</a>
-        <a asp-action="Delete" asp-route-id="@Model.EnemyId">Delete</a>
-    }
-</div>
-
-<span>@Model.Name</span>
-
-<span>@Model.Description</span>
-
-<div style="display: flex; flex-direction: row;">
-    @foreach (var transformation in Model.Transformations.Take(3))
-    {
-        <div>
-            <div style="display: flex; flex-direction: column;">
-                <img src="@transformation.Sprite"/>
-                <span>@transformation.Name</span>
-                <span>@transformation.EntityId</span>
-            </div>
-            <span>@transformation.ContactDamage</span>
-            <span>Drop</span>
-            <div style="display: flex; flex-direction: row; overflow-x: auto;">
-                @foreach (var item in transformation.Drops.Take(5))
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-bug"></i> @Model.Name
+            </h4>
+            <div>
+                <a asp-action="Index" class="btn btn-outline-light btn-sm me-2">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                @if (User.IsInRole("Admin"))
                 {
-                    <div style="display: flex; flex-direction: column;">
-                        <img src="@item.Sprite"/>
-                        <span>@item.Name</span>
-                        <span>@item.Quantity</span>
+                    <a asp-action="Edit" asp-route-id="@Model.EnemyId" class="btn btn-warning btn-sm me-2">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@Model.EnemyId" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-2 text-center">
+                    <img src="@Model.Sprite" alt="@Model.Name" class="img-fluid border rounded bg-light p-2" style="max-height: 100px;" />
+                </div>
+                <div class="col-md-10">
+                    <h5 class="text-muted mb-3">@Model.Description</h5>
+                </div>
+            </div>
+
+            <h5 class="border-bottom pb-2 mb-3">Stages</h5>
+            <div class="row g-4">
+                @foreach (var transformation in Model.Transformations)
+                {
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-dark text-white">
+                                <h6 class="mb-0">@transformation.Name</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <img src="@transformation.Sprite" alt="@transformation.Name" class="img-fluid border rounded" style="max-height: 80px;" />
+                                </div>
+
+                                <div class="row text-center mb-3">
+                                    <div class="col-4">
+                                        <div class="small text-muted">Game ID</div>
+                                        <strong>@transformation.EntityId</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="small text-muted">HP</div>
+                                        <strong>@transformation.Hp</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="small text-muted">Defense</div>
+                                        <strong>@transformation.Defense</strong>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mb-3">
+                                    <span class="badge bg-danger">Contact Damage: @transformation.ContactDamage</span>
+                                </div>
+
+                                @if (transformation.Drops.Any())
+                                {
+                                    <div>
+                                        <label class="small fw-bold">Drops:</label>
+                                        <div class="row flex-nowrap overflow-auto pb-2" style="gap: 0.5rem;">
+                                            @foreach (var drop in transformation.Drops)
+                                            {
+                                                <div class="col-auto">
+                                                    <div class="text-center" style="width: 60px;">
+                                                        <img src="@drop.Sprite" alt="@drop.Name" class="img-fluid" style="max-height: 30px;" />
+                                                        <div class="small text-truncate">@drop.Name</div>
+                                                        <span class="badge bg-secondary">x@(drop.Quantity)</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
                 }
             </div>
         </div>
-    }
+    </div>
 </div>

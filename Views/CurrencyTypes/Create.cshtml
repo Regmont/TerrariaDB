@@ -4,23 +4,37 @@
     ViewData["Title"] = "Create Currency Type";
 }
 
-<h1>Create Currency Type</h1>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Create Currency Type</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-<a asp-action="Index">Back</a>
+                        <div class="mb-3">
+                            <label asp-for="CurrencyName" class="form-label fw-bold"></label>
+                            <input asp-for="CurrencyName" class="form-control" placeholder="Enter currency name" />
+                            <span asp-validation-for="CurrencyName" class="text-danger"></span>
+                        </div>
 
-<form asp-action="Create" method="post">
-    <div asp-validation-summary="ModelOnly"></div>
-
-    <div>
-        <div>
-            <label asp-for="CurrencyName"></label>
-            <input asp-for="CurrencyName" />
-            <span asp-validation-for="CurrencyName"></span>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-
-    <button type="submit">Save</button>
-</form>
+</div>
 
 @section Scripts {
     @{

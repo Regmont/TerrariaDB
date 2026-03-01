@@ -4,31 +4,49 @@
     ViewData["Title"] = "Edit Crafting Station";
 }
 
-<h1>Edit Crafting Station</h1>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil"></i> Edit Crafting Station
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-<a asp-action="Index">Back</a>
+                        <input type="hidden" asp-for="OriginalCraftingStationName" />
 
-<form asp-action="Edit" method="post">
-    <div asp-validation-summary="ModelOnly"></div>
+                        <div class="mb-3">
+                            <label asp-for="CraftingStationName" class="form-label fw-bold"></label>
+                            <input asp-for="CraftingStationName" class="form-control" />
+                            <span asp-validation-for="CraftingStationName" class="text-danger"></span>
+                        </div>
 
-    <input type="hidden" asp-for="OriginalCraftingStationName" />
+                        <div class="mb-4">
+                            <label asp-for="SelectedItemId" class="form-label fw-bold">Represented by</label>
+                            <select asp-for="SelectedItemId" asp-items="Model.AvailableItems" class="form-select">
+                                <option value="">-- Select an item --</option>
+                            </select>
+                            <span asp-validation-for="SelectedItemId" class="text-danger"></span>
+                        </div>
 
-    <div>
-        <div>
-            <label asp-for="CraftingStationName"></label>
-            <input asp-for="CraftingStationName" />
-            <span asp-validation-for="CraftingStationName"></span>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div>
-        <label asp-for="SelectedItemId">Represented by</label>
-        <select asp-for="SelectedItemId" asp-items="Model.AvailableItems"></select>
-        <span asp-validation-for="SelectedItemId"></span>
-    </div>
-
-    <button type="submit">Save</button>
-</form>
+</div>
 
 @section Scripts {
     @{

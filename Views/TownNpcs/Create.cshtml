@@ -1,110 +1,143 @@
 ﻿@model TerrariaDB.ViewModels.Terraria.TownNpc.TownNpcCreateViewModel
 
-<h1>Create Town NPC</h1>
+@{
+    ViewData["Title"] = "Create Town NPC";
+}
 
-<a asp-action="Index">Back</a>
-
-<form asp-action="Create" method="post">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div>
-        <div>
-            <label asp-for="Name"></label>
-            <input asp-for="Name" type="text" />
-            <span asp-validation-for="Name" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div>
-        <div>
-            <label asp-for="Description"></label>
-            <input asp-for="Description" type="text" />
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-    </div>
-
-    <div>
-        <div style="display: flex; flex-direction: row;">
-            <div class="town-stage" data-stage="0">
-                <div>
-                    <label asp-for="Stages[0].Sprite">Sprite</label>
-                    <input asp-for="Stages[0].Sprite" type="text" />
-                    <span asp-validation-for="Stages[0].Sprite" class="text-danger"></span>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Create New Town NPC
+                    </h4>
                 </div>
-                <div>
-                    <label>HP:</label>
-                    @Model.Stages[0].Hp
-                </div>
-                <div>
-                    <label>Defense:</label>
-                    @Model.Stages[0].Defense
-                </div>
-                <div>
-                    <label asp-for="Stages[0].EntityId">Game ID</label>
-                    <input asp-for="Stages[0].EntityId" type="number" />
-                    <span asp-validation-for="Stages[0].EntityId" class="text-danger"></span>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="Name" class="form-label fw-bold"></label>
+                                <input asp-for="Name" type="text" class="form-control" placeholder="Enter NPC name" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Description" class="form-label fw-bold"></label>
+                                <input asp-for="Description" type="text" class="form-control" placeholder="Enter description" />
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3">Stages</h5>
+                        <div class="row g-4 mb-4">
+                            @for (int i = 0; i < 4; i++)
+                            {
+                                <div class="col-md-3">
+                                    <div class="card @(i == 0 ? "border-primary" : "border-secondary") h-100">
+                                        <div class="card-header @(i == 0 ? "bg-primary bg-opacity-10" : "bg-light")">
+                                            <h6 class="mb-0">@(i == 0 ? "Base Stage" : $"Stage {i + 1}")</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <label asp-for="Stages[i].Sprite" class="form-label small fw-bold">Sprite URL</label>
+                                                <input asp-for="Stages[i].Sprite" type="text" class="form-control form-control-sm" />
+                                                <span asp-validation-for="Stages[i].Sprite" class="text-danger small"></span>
+                                            </div>
+                                            <div class="row mb-2">
+                                                <div class="col-6">
+                                                    <label class="small fw-bold">HP</label>
+                                                    <input type="text" class="form-control form-control-sm bg-light" value="@Model.Stages[i].Hp" readonly />
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="small fw-bold">Defense</label>
+                                                    <input type="text" class="form-control form-control-sm bg-light" value="@Model.Stages[i].Defense" readonly />
+                                                </div>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label asp-for="Stages[i].EntityId" class="form-label small fw-bold">Game ID</label>
+                                                <input asp-for="Stages[i].EntityId" type="number" class="form-control form-control-sm" />
+                                                <span asp-validation-for="Stages[i].EntityId" class="text-danger small"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Drops</h5>
+                                <div class="row g-2">
+                                    @for (int i = 0; i < 5; i++)
+                                    {
+                                        <div class="col-md-2 town-drop" data-index="@i">
+                                            <div class="border rounded p-2 bg-white">
+                                                <select asp-for="Drops[i].ItemId" asp-items="Model.AvailableItems" class="form-select form-select-sm mb-2">
+                                                    <option value="">-- Item --</option>
+                                                </select>
+                                                <div class="input-group input-group-sm">
+                                                    <input asp-for="Drops[i].Quantity" type="number" class="form-control" min="1" max="100" value="1" />
+                                                    <button type="button" class="btn btn-outline-secondary clear-town-drop" data-index="@i">
+                                                        <i class="bi bi-eraser"></i>
+                                                    </button>
+                                                </div>
+                                                <span asp-validation-for="Drops[i].Quantity" class="text-danger small"></span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Trades</h5>
+                                <div class="row g-3">
+                                    @for (int i = 0; i < 15; i++)
+                                    {
+                                        <div class="col-md-4 col-lg-3 town-trade" data-index="@i">
+                                            <div class="border rounded p-2 bg-white">
+                                                <select asp-for="Trades[i].ItemId" asp-items="Model.AvailableItems" class="form-select form-select-sm mb-2">
+                                                    <option value="">-- Item --</option>
+                                                </select>
+                                                <div class="row g-1 mb-2">
+                                                    <div class="col-6">
+                                                        <input asp-for="Trades[i].Quantity" type="number" class="form-control form-control-sm" min="1" max="50" value="1" placeholder="Qty" />
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <select asp-for="Trades[i].TradeType" asp-items="Model.AvailableTradeTypes" class="form-select form-select-sm">
+                                                            <option value="">Type</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary w-100 clear-town-trade" data-index="@i">
+                                                    <i class="bi bi-eraser"></i> Clear
+                                                </button>
+                                                <span asp-validation-for="Trades[i].Quantity" class="text-danger small"></span>
+                                                <span asp-validation-for="Trades[i].TradeType" class="text-danger small"></span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Town NPC
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </div>
-            @for (int i = 1; i < 4; i++)
-            {
-                <div class="town-stage" data-stage="@i">
-                    <div>
-                        <label asp-for="Stages[i].Sprite">Sprite</label>
-                        <input asp-for="Stages[i].Sprite" type="text" />
-                        <span asp-validation-for="Stages[i].Sprite" class="text-danger"></span>
-                    </div>
-                    <div>
-                        <label>HP:</label>
-                        @Model.Stages[i].Hp
-                    </div>
-                    <div>
-                        <label>Defense:</label>
-                        @Model.Stages[i].Defense
-                    </div>
-                    <div>
-                        <label asp-for="Stages[i].EntityId">Game ID</label>
-                        <input asp-for="Stages[i].EntityId" type="number" />
-                        <span asp-validation-for="Stages[i].EntityId" class="text-danger"></span>
-                    </div>
-                </div>
-            }
         </div>
     </div>
-
-    <div>
-        <label>Drop</label>
-        <div style="display: flex; flex-direction: row;">
-            @for (int i = 0; i < 5; i++)
-            {
-                <div class="town-drop" data-index="@i">
-                    <select asp-for="Drops[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="Drops[i].Quantity" type="number" />
-                    <span asp-validation-for="Drops[i].Quantity" class="text-danger"></span>
-                    <button type="button" class="clear-town-drop" data-index="@i">Clear</button>
-                </div>
-            }
-        </div>
-    </div>
-
-    <div>
-        <label>Trades</label>
-        <div style="display: flex; flex-direction: row;">
-            @for (int i = 0; i < 15; i++)
-            {
-                <div class="town-trade" data-index="@i">
-                    <select asp-for="Trades[i].ItemId" asp-items="Model.AvailableItems"></select>
-                    <input asp-for="Trades[i].Quantity" type="number" />
-                    <span asp-validation-for="Trades[i].Quantity" class="text-danger"></span>
-                    <select asp-for="Trades[i].TradeType" asp-items="Model.AvailableTradeTypes"></select>
-                    <span asp-validation-for="Trades[i].TradeType" class="text-danger"></span>
-                    <button type="button" class="clear-town-trade" data-index="@i">Clear</button>
-                </div>
-            }
-        </div>
-    </div>
-
-    <button type="submit">Save</button>
-</form>
+</div>
 
 @section Scripts {
     @{
@@ -116,13 +149,13 @@
             button.addEventListener('click', function(e) {
                 e.preventDefault();
                 const index = this.getAttribute('data-index');
-                const dropDiv = document.querySelector(`.town-drop[data-index="${index}"]`);
+                const dropDiv = this.closest('.town-drop');
 
                 const select = dropDiv.querySelector('select');
                 const input = dropDiv.querySelector('input[type="number"]');
 
                 if (select) select.selectedIndex = 0;
-                if (input) input.value = '1';
+                if (input) input.value = 1;
             });
         });
 
@@ -130,13 +163,13 @@
             button.addEventListener('click', function(e) {
                 e.preventDefault();
                 const index = this.getAttribute('data-index');
-                const tradeDiv = document.querySelector(`.town-trade[data-index="${index}"]`);
+                const tradeDiv = this.closest('.town-trade');
 
                 const selects = tradeDiv.querySelectorAll('select');
                 const input = tradeDiv.querySelector('input[type="number"]');
 
                 selects.forEach(select => select.selectedIndex = 0);
-                if (input) input.value = '1';
+                if (input) input.value = 1;
             });
         });
     </script>

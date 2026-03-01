@@ -4,25 +4,39 @@
     ViewData["Title"] = "Edit Trade Type";
 }
 
-<h1>Edit Trade Type</h1>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0">Edit Trade Type</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-<a asp-action="Index">Back</a>
+                        <input type="hidden" asp-for="OriginalTradeTypeName" />
 
-<form asp-action="Edit" method="post">
-    <div asp-validation-summary="ModelOnly"></div>
+                        <div class="mb-3">
+                            <label asp-for="TradeTypeName" class="form-label fw-bold"></label>
+                            <input asp-for="TradeTypeName" class="form-control" />
+                            <span asp-validation-for="TradeTypeName" class="text-danger"></span>
+                        </div>
 
-    <input type="hidden" asp-for="OriginalTradeTypeName" />
-
-    <div>
-        <div>
-            <label asp-for="TradeTypeName"></label>
-            <input asp-for="TradeTypeName" />
-            <span asp-validation-for="TradeTypeName"></span>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-
-    <button type="submit">Save</button>
-</form>
+</div>
 
 @section Scripts {
     @{

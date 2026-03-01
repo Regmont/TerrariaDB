@@ -4,38 +4,76 @@
     ViewData["Title"] = "Enemies";
 }
 
-<h1>Enemies</h1>
-
-<div>
-    <a asp-action="Index" asp-controller="Home">Back</a>
-    @if (User.IsInRole("Admin"))
-    {
-        <a asp-action="Create">Create</a>
-    }
-</div>
-
-<div>
-    <table>
-        @foreach (var enemy in Model.Enemies)
-        {
-            <tr>
-                <td>
-                    <div style="display: flex; flex-direction: column;">
-                        <img src="@enemy.Sprite" />
-                        <span>@enemy.Name</span>
-                    </div>
-                </td>
-                <td>
-                    <div style="display: flex; flex-direction: row;">
-                        <a asp-action="Details" asp-route-id="@enemy.Id">Details</a>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@enemy.Id">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@enemy.Id">Delete</a>
-                        }
-                    </div>
-                </td>
-            </tr>
-        }
-    </table>
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-bug"></i> Enemies
+            </h4>
+            <div>
+                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-light btn-sm me-2">
+                    <i class="bi bi-house"></i> Home
+                </a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-action="Create" class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Create New
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!Model.Enemies.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    No enemies found.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Enemy</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var enemy in Model.Enemies)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <img src="@enemy.Sprite" alt="@enemy.Name" 
+                                                 style="width: 40px; height: 40px; object-fit: contain;" 
+                                                 class="border rounded bg-light p-1" />
+                                            <span class="fw-bold">@enemy.Name</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Details" asp-route-id="@enemy.Id" class="btn btn-info text-white" title="Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            @if (User.IsInRole("Admin"))
+                                            {
+                                                <a asp-action="Edit" asp-route-id="@enemy.Id" class="btn btn-warning" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a asp-action="Delete" asp-route-id="@enemy.Id" class="btn btn-danger" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 </div>
