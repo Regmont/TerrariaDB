@@ -15,35 +15,7 @@
         </div>
     </header>
 
-    <div class="body-horizontal">
-        <main class="main-content">
-            @RenderBody()
-        </main>
-        <aside class="registries-sidebar">
-            <h2 class="sidebar-title">Registries</h2>
-            <div class="vertical-scrollbar-container">
-                <a asp-controller="CraftingStations" asp-action="Index" class="terraria-card">
-                    <div class="card-icon"></div>
-                    <span class="card-title">Crafting Stations</span>
-                </a>
-                <a asp-controller="Entities" asp-action="Index" class="terraria-card">
-                    <div class="card-icon"></div>
-                    <span class="card-title">Entities</span>
-                </a>
-                @if (User.IsInRole("Admin"))
-                {
-                    <a asp-controller="TradeTypes" asp-action="Index" class="terraria-card">
-                        <div class="card-icon"></div>
-                        <span class="card-title">Trade Types</span>
-                    </a>
-                    <a asp-controller="CurrencyTypes" asp-action="Index" class="terraria-card">
-                        <div class="card-icon"></div>
-                        <span class="card-title">Currency Types</span>
-                    </a>
-                }
-            </div>
-        </aside>
-    </div>
+    @RenderBody()
 
     <footer class="terraria-footer">
         <span>©2026-TerrariaDB</span>

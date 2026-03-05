@@ -193,6 +193,29 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            for (int i = 0; i < viewModel.Stages.Count; i++)
+            {
+                for (int j = 0; j < viewModel.Stages[i].Drops.Count; j++)
+                {
+                    var drop = viewModel.Stages[i].Drops[j];
+
+                    if (string.IsNullOrEmpty(drop.ItemId) || drop.Quantity <= 0)
+                    {
+                        ModelState.Remove($"Stages[{i}].Drops[{j}].ItemId");
+                        ModelState.Remove($"Stages[{i}].Drops[{j}].Quantity");
+                    }
+                }
+            }
+
+            for (int i = 1; i < viewModel.Stages.Count; i++)
+            {
+                if (string.IsNullOrEmpty(viewModel.Stages[i].Sprite))
+                {
+                    ModelState.Remove($"Stages[{i}].Sprite");
+                    ModelState.Remove($"Stages[{i}].EntityId");
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
@@ -240,7 +263,9 @@ namespace TerrariaDB.Controllers.Terraria
                     }
                 }
 
-                GameObject? previousGameObject = null;
+                var filledStages = viewModel.Stages
+                .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                .ToList();
 
                 for (int i = 0; i < viewModel.Stages.Count; i++)
                 {
@@ -250,13 +275,14 @@ namespace TerrariaDB.Controllers.Terraria
                         continue;
 
                     var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+                    var nextGameObjectName = i < filledStages.Count - 1 ? $"{viewModel.Name}_{i + 2}" : null;
 
                     var gameObject = new GameObject
                     {
                         GameObjectName = gameObjectName,
                         Description = i == 0 ? viewModel.Description : null,
                         Sprite = stage.Sprite,
-                        TransformName = previousGameObject?.GameObjectName
+                        TransformName = nextGameObjectName
                     };
 
                     _context.GameObject.Add(gameObject);
@@ -281,7 +307,7 @@ namespace TerrariaDB.Controllers.Terraria
 
                     var enemy = new Enemy
                     {
-                        HostileEntityId = hostileEntity.HostileEntityId
+                        HostileEntity = hostileEntity
                     };
 
                     _context.Enemy.Add(enemy);
@@ -296,8 +322,6 @@ namespace TerrariaDB.Controllers.Terraria
                         };
                         _context.EntityDrop.Add(entityDrop);
                     }
-
-                    previousGameObject = gameObject;
                 }
 
                 await _context.SaveChangesAsync();
@@ -307,295 +331,295 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        // GET: Enemies/Edit/5
-        [Authorize(Roles = "Admin")]
-        public IActionResult Edit(int id)
-        {
-            var enemy = _context.Enemy
-                .Include(e => e.HostileEntity)
-                    .ThenInclude(he => he.Entity)
-                    .ThenInclude(e => e.GameObject)
-                .Include(e => e.HostileEntity)
-                    .ThenInclude(he => he.Entity)
-                    .ThenInclude(e => e.EntityDrops)
-                    .ThenInclude(ed => ed.Item)
-                    .ThenInclude(i => i.GameObject)
-                .FirstOrDefault(e => e.EnemyId == id);
+        //// GET: Enemies/Edit/5
+        //[Authorize(Roles = "Admin")]
+        //public IActionResult Edit(int id)
+        //{
+        //    var enemy = _context.Enemy
+        //        .Include(e => e.HostileEntity)
+        //            .ThenInclude(he => he.Entity)
+        //            .ThenInclude(e => e.GameObject)
+        //        .Include(e => e.HostileEntity)
+        //            .ThenInclude(he => he.Entity)
+        //            .ThenInclude(e => e.EntityDrops)
+        //            .ThenInclude(ed => ed.Item)
+        //            .ThenInclude(i => i.GameObject)
+        //        .FirstOrDefault(e => e.EnemyId == id);
 
-            if (enemy == null)
-            {
-                return NotFound();
-            }
+        //    if (enemy == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            var viewModel = new EnemyEditViewModel
-            {
-                EnemyId = enemy.EnemyId.ToString(),
-                Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
-                Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty
-            };
+        //    var viewModel = new EnemyEditViewModel
+        //    {
+        //        EnemyId = enemy.EnemyId.ToString(),
+        //        Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
+        //        Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty
+        //    };
 
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
 
-            for (int i = 0; i < 3; i++)
-            {
-                var stage = new EnemyEditStageViewModel();
+        //    for (int i = 0; i < 3; i++)
+        //    {
+        //        var stage = new EnemyEditStageViewModel();
 
-                if (i == 0)
-                {
-                    stage.Sprite = enemy.HostileEntity.Entity.GameObject.Sprite;
-                    stage.Hp = enemy.HostileEntity.Entity.Hp ?? 0;
-                    stage.Defense = enemy.HostileEntity.Entity.Defense;
-                    stage.EntityId = enemy.HostileEntity.Entity.EntityId;
-                    stage.ContactDamage = enemy.HostileEntity.ContactDamage;
+        //        if (i == 0)
+        //        {
+        //            stage.Sprite = enemy.HostileEntity.Entity.GameObject.Sprite;
+        //            stage.Hp = enemy.HostileEntity.Entity.Hp ?? 0;
+        //            stage.Defense = enemy.HostileEntity.Entity.Defense;
+        //            stage.EntityId = enemy.HostileEntity.Entity.EntityId;
+        //            stage.ContactDamage = enemy.HostileEntity.ContactDamage;
 
-                    var drops = enemy.HostileEntity.Entity.EntityDrops.ToList();
-                    for (int j = 0; j < 5; j++)
-                    {
-                        var drop = new EnemyDropEditViewModel();
-                        if (j < drops.Count)
-                        {
-                            drop.ItemId = drops[j].ItemId.ToString();
-                            drop.Quantity = drops[j].Quantity;
-                        }
-                        stage.Drops.Add(drop);
-                    }
-                }
-                else
-                {
-                    for (int j = 0; j < 5; j++)
-                    {
-                        stage.Drops.Add(new EnemyDropEditViewModel());
-                    }
-                }
+        //            var drops = enemy.HostileEntity.Entity.EntityDrops.ToList();
+        //            for (int j = 0; j < 5; j++)
+        //            {
+        //                var drop = new EnemyDropEditViewModel();
+        //                if (j < drops.Count)
+        //                {
+        //                    drop.ItemId = drops[j].ItemId.ToString();
+        //                    drop.Quantity = drops[j].Quantity;
+        //                }
+        //                stage.Drops.Add(drop);
+        //            }
+        //        }
+        //        else
+        //        {
+        //            for (int j = 0; j < 5; j++)
+        //            {
+        //                stage.Drops.Add(new EnemyDropEditViewModel());
+        //            }
+        //        }
 
-                viewModel.Stages.Add(stage);
-            }
+        //        viewModel.Stages.Add(stage);
+        //    }
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
-        // POST: Enemies/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(EnemyEditViewModel viewModel)
-        {
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+        //// POST: Enemies/Edit/5
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> Edit(EnemyEditViewModel viewModel)
+        //{
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
 
-            if (ModelState.IsValid)
-            {
-                var originalEnemy = await _context.Enemy
-                    .Include(e => e.HostileEntity)
-                        .ThenInclude(he => he.Entity)
-                            .ThenInclude(en => en.GameObject)
-                    .Include(e => e.HostileEntity)
-                        .ThenInclude(he => he.Entity)
-                            .ThenInclude(en => en.EntityDrops)
-                    .FirstOrDefaultAsync(e => e.EnemyId == short.Parse(viewModel.EnemyId));
+        //    if (ModelState.IsValid)
+        //    {
+        //        var originalEnemy = await _context.Enemy
+        //            .Include(e => e.HostileEntity)
+        //                .ThenInclude(he => he.Entity)
+        //                    .ThenInclude(en => en.GameObject)
+        //            .Include(e => e.HostileEntity)
+        //                .ThenInclude(he => he.Entity)
+        //                    .ThenInclude(en => en.EntityDrops)
+        //            .FirstOrDefaultAsync(e => e.EnemyId == short.Parse(viewModel.EnemyId));
 
-                if (originalEnemy == null)
-                {
-                    return NotFound();
-                }
+        //        if (originalEnemy == null)
+        //        {
+        //            return NotFound();
+        //        }
 
-                if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
-                {
-                    ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
-                    return View(viewModel);
-                }
+        //        if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+        //        {
+        //            ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
+        //            return View(viewModel);
+        //        }
 
-                var existingStages = new List<(GameObject go, Entity entity, HostileEntity hostile, Enemy enemy)>();
-                var current = originalEnemy.HostileEntity.Entity.GameObject;
-                while (current != null)
-                {
-                    var enemyAtStage = await _context.Enemy
-                        .Include(e => e.HostileEntity)
-                            .ThenInclude(he => he.Entity)
-                        .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
+        //        var existingStages = new List<(GameObject go, Entity entity, HostileEntity hostile, Enemy enemy)>();
+        //        var current = originalEnemy.HostileEntity.Entity.GameObject;
+        //        while (current != null)
+        //        {
+        //            var enemyAtStage = await _context.Enemy
+        //                .Include(e => e.HostileEntity)
+        //                    .ThenInclude(he => he.Entity)
+        //                .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
 
-                    if (enemyAtStage != null)
-                    {
-                        existingStages.Add((current,
-                            enemyAtStage.HostileEntity.Entity,
-                            enemyAtStage.HostileEntity,
-                            enemyAtStage));
-                    }
-                    current = await _context.GameObject
-                        .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
-                }
+        //            if (enemyAtStage != null)
+        //            {
+        //                existingStages.Add((current,
+        //                    enemyAtStage.HostileEntity.Entity,
+        //                    enemyAtStage.HostileEntity,
+        //                    enemyAtStage));
+        //            }
+        //            current = await _context.GameObject
+        //                .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+        //        }
 
-                var allSprites = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select(s => s.Sprite)
-                    .ToList();
+        //        var allSprites = viewModel.Stages
+        //            .Where(s => !string.IsNullOrEmpty(s.Sprite))
+        //            .Select(s => s.Sprite)
+        //            .ToList();
 
-                for (int i = 0; i < allSprites.Count; i++)
-                {
-                    var sprite = allSprites[i];
-                    var existingSprites = existingStages.Select(s => s.go.Sprite).ToList();
+        //        for (int i = 0; i < allSprites.Count; i++)
+        //        {
+        //            var sprite = allSprites[i];
+        //            var existingSprites = existingStages.Select(s => s.go.Sprite).ToList();
 
-                    if (!existingSprites.Contains(sprite) &&
-                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
+        //            if (!existingSprites.Contains(sprite) &&
+        //                await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+        //            {
+        //                ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+        //                return View(viewModel);
+        //            }
+        //        }
 
-                var allEntityIds = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select(s => s.EntityId)
-                    .ToList();
+        //        var allEntityIds = viewModel.Stages
+        //            .Where(s => !string.IsNullOrEmpty(s.Sprite))
+        //            .Select(s => s.EntityId)
+        //            .ToList();
 
-                if (allEntityIds.Count != allEntityIds.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Entity IDs must be unique across all stages");
-                    return View(viewModel);
-                }
+        //        if (allEntityIds.Count != allEntityIds.Distinct().Count())
+        //        {
+        //            ModelState.AddModelError("", "Entity IDs must be unique across all stages");
+        //            return View(viewModel);
+        //        }
 
-                var allGameObjectNames = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
-                    .ToList();
+        //        var allGameObjectNames = viewModel.Stages
+        //            .Where(s => !string.IsNullOrEmpty(s.Sprite))
+        //            .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
+        //            .ToList();
 
-                for (int i = 0; i < allGameObjectNames.Count; i++)
-                {
-                    var name = allGameObjectNames[i];
-                    var existingNames = existingStages.Select(s => s.go.GameObjectName).ToList();
+        //        for (int i = 0; i < allGameObjectNames.Count; i++)
+        //        {
+        //            var name = allGameObjectNames[i];
+        //            var existingNames = existingStages.Select(s => s.go.GameObjectName).ToList();
 
-                    if (!existingNames.Contains(name) &&
-                        await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
-                    {
-                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
-                        return View(viewModel);
-                    }
-                }
+        //            if (!existingNames.Contains(name) &&
+        //                await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+        //            {
+        //                ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+        //                return View(viewModel);
+        //            }
+        //        }
 
-                GameObject? previousGameObject = null;
+        //        GameObject? previousGameObject = null;
 
-                for (int i = 0; i < viewModel.Stages.Count; i++)
-                {
-                    var stage = viewModel.Stages[i];
+        //        for (int i = 0; i < viewModel.Stages.Count; i++)
+        //        {
+        //            var stage = viewModel.Stages[i];
 
-                    if (string.IsNullOrEmpty(stage.Sprite))
-                        continue;
+        //            if (string.IsNullOrEmpty(stage.Sprite))
+        //                continue;
 
-                    var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+        //            var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
 
-                    GameObject gameObject;
-                    Entity entity;
-                    HostileEntity hostileEntity;
-                    Enemy enemy;
+        //            GameObject gameObject;
+        //            Entity entity;
+        //            HostileEntity hostileEntity;
+        //            Enemy enemy;
 
-                    if (i < existingStages.Count)
-                    {
-                        (gameObject, entity, hostileEntity, enemy) = existingStages[i];
+        //            if (i < existingStages.Count)
+        //            {
+        //                (gameObject, entity, hostileEntity, enemy) = existingStages[i];
 
-                        gameObject.GameObjectName = gameObjectName;
-                        gameObject.Description = i == 0 ? viewModel.Description : null;
-                        gameObject.Sprite = stage.Sprite;
-                        gameObject.TransformName = previousGameObject?.GameObjectName;
+        //                gameObject.GameObjectName = gameObjectName;
+        //                gameObject.Description = i == 0 ? viewModel.Description : null;
+        //                gameObject.Sprite = stage.Sprite;
+        //                gameObject.TransformName = previousGameObject?.GameObjectName;
 
-                        entity.EntityId = stage.EntityId;
-                        entity.Hp = stage.Hp;
-                        entity.Defense = (short)stage.Defense;
+        //                entity.EntityId = stage.EntityId;
+        //                entity.Hp = stage.Hp;
+        //                entity.Defense = (short)stage.Defense;
 
-                        hostileEntity.ContactDamage = (short)stage.ContactDamage;
+        //                hostileEntity.ContactDamage = (short)stage.ContactDamage;
 
-                        _context.GameObject.Update(gameObject);
-                        _context.Entity.Update(entity);
-                        _context.HostileEntity.Update(hostileEntity);
+        //                _context.GameObject.Update(gameObject);
+        //                _context.Entity.Update(entity);
+        //                _context.HostileEntity.Update(hostileEntity);
 
-                        var oldDrops = await _context.EntityDrop
-                            .Where(ed => ed.EntityId == entity.EntityId)
-                            .ToListAsync();
-                        _context.EntityDrop.RemoveRange(oldDrops);
-                    }
-                    else
-                    {
-                        gameObject = new GameObject
-                        {
-                            GameObjectName = gameObjectName,
-                            Description = i == 0 ? viewModel.Description : null,
-                            Sprite = stage.Sprite,
-                            TransformName = previousGameObject?.GameObjectName
-                        };
-                        _context.GameObject.Add(gameObject);
+        //                var oldDrops = await _context.EntityDrop
+        //                    .Where(ed => ed.EntityId == entity.EntityId)
+        //                    .ToListAsync();
+        //                _context.EntityDrop.RemoveRange(oldDrops);
+        //            }
+        //            else
+        //            {
+        //                gameObject = new GameObject
+        //                {
+        //                    GameObjectName = gameObjectName,
+        //                    Description = i == 0 ? viewModel.Description : null,
+        //                    Sprite = stage.Sprite,
+        //                    TransformName = previousGameObject?.GameObjectName
+        //                };
+        //                _context.GameObject.Add(gameObject);
 
-                        entity = new Entity
-                        {
-                            EntityId = stage.EntityId,
-                            GameObjectName = gameObject.GameObjectName,
-                            Hp = stage.Hp,
-                            Defense = (short)stage.Defense
-                        };
-                        _context.Entity.Add(entity);
+        //                entity = new Entity
+        //                {
+        //                    EntityId = stage.EntityId,
+        //                    GameObjectName = gameObject.GameObjectName,
+        //                    Hp = stage.Hp,
+        //                    Defense = (short)stage.Defense
+        //                };
+        //                _context.Entity.Add(entity);
 
-                        hostileEntity = new HostileEntity
-                        {
-                            EntityId = entity.EntityId,
-                            ContactDamage = (short)stage.ContactDamage
-                        };
-                        _context.HostileEntity.Add(hostileEntity);
+        //                hostileEntity = new HostileEntity
+        //                {
+        //                    EntityId = entity.EntityId,
+        //                    ContactDamage = (short)stage.ContactDamage
+        //                };
+        //                _context.HostileEntity.Add(hostileEntity);
 
-                        enemy = new Enemy
-                        {
-                            HostileEntityId = hostileEntity.HostileEntityId
-                        };
-                        _context.Enemy.Add(enemy);
-                    }
+        //                enemy = new Enemy
+        //                {
+        //                    HostileEntityId = hostileEntity.HostileEntityId
+        //                };
+        //                _context.Enemy.Add(enemy);
+        //            }
 
-                    foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
-                    {
-                        var entityDrop = new EntityDrop
-                        {
-                            EntityId = entity.EntityId,
-                            ItemId = short.Parse(drop.ItemId),
-                            Quantity = (short)drop.Quantity
-                        };
-                        _context.EntityDrop.Add(entityDrop);
-                    }
+        //            foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+        //            {
+        //                var entityDrop = new EntityDrop
+        //                {
+        //                    EntityId = entity.EntityId,
+        //                    ItemId = short.Parse(drop.ItemId),
+        //                    Quantity = (short)drop.Quantity
+        //                };
+        //                _context.EntityDrop.Add(entityDrop);
+        //            }
 
-                    previousGameObject = gameObject;
-                }
+        //            previousGameObject = gameObject;
+        //        }
 
-                for (int i = viewModel.Stages.Count; i < existingStages.Count; i++)
-                {
-                    var (go, entity, hostile, enemy) = existingStages[i];
+        //        for (int i = viewModel.Stages.Count; i < existingStages.Count; i++)
+        //        {
+        //            var (go, entity, hostile, enemy) = existingStages[i];
 
-                    var drops = await _context.EntityDrop
-                        .Where(ed => ed.EntityId == entity.EntityId)
-                        .ToListAsync();
-                    _context.EntityDrop.RemoveRange(drops);
+        //            var drops = await _context.EntityDrop
+        //                .Where(ed => ed.EntityId == entity.EntityId)
+        //                .ToListAsync();
+        //            _context.EntityDrop.RemoveRange(drops);
 
-                    _context.Enemy.Remove(enemy);
-                    _context.HostileEntity.Remove(hostile);
-                    _context.Entity.Remove(entity);
-                    _context.GameObject.Remove(go);
-                }
+        //            _context.Enemy.Remove(enemy);
+        //            _context.HostileEntity.Remove(hostile);
+        //            _context.Entity.Remove(entity);
+        //            _context.GameObject.Remove(go);
+        //        }
 
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
+        //        await _context.SaveChangesAsync();
+        //        return RedirectToAction(nameof(Index));
+        //    }
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
         // GET: Enemies/Delete/5
         [Authorize(Roles = "Admin")]

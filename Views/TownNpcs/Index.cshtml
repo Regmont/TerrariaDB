@@ -4,76 +4,73 @@
     ViewData["Title"] = "Town NPCs";
 }
 
-<div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-                <i class="bi bi-people"></i> Town NPCs
-            </h4>
-            <div>
-                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-light btn-sm me-2">
-                    <i class="bi bi-house"></i> Home
-                </a>
-                @if (User.IsInRole("Admin"))
-                {
-                    <a asp-action="Create" class="btn btn-success btn-sm">
-                        <i class="bi bi-plus-circle"></i> Create New
+<div class="terraria-page">
+    <div class="terraria-page-wide">
+        <div class="table-page-card">
+            <div class="table-page-header">
+                <h4>Town NPCs</h4>
+                <div class="horizontal-container">
+                    <a asp-action="Index" asp-controller="Home" class="table-btn table-btn-sm">
+                        Home
                     </a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-action="Create" class="table-btn table-btn-sm table-btn-success">
+                            Create New
+                        </a>
+                    }
+                </div>
+            </div>
+            <div class="table-page-body">
+                @if (!Model.TownNpcs.Any())
+                {
+                    <div class="terraria-alert terraria-alert-info">
+                        No town NPCs found.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table-page">
+                            <thead>
+                                <tr>
+                                    <th>Town NPC</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var townNpc in Model.TownNpcs)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="table-cell">
+                                                <img src="@townNpc.Sprite" alt="@townNpc.Name" class="table-icon" />
+                                                <span class="table-title">@townNpc.Name</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <a asp-action="Details" asp-route-id="@townNpc.Id" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                    Details
+                                                </a>
+                                                @if (User.IsInRole("Admin"))
+                                                {
+                                                    @* <a asp-action="Edit" asp-route-id="@townNpc.Id" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                        Edit
+                                                    </a> *@
+                                                    <a asp-action="Delete" asp-route-id="@townNpc.Id" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                        Delete
+                                                    </a>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 }
             </div>
-        </div>
-        <div class="card-body">
-            @if (!Model.TownNpcs.Any())
-            {
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    No town NPCs found.
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Town NPC</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var townNpc in Model.TownNpcs)
-                            {
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <img src="@townNpc.Sprite" alt="@townNpc.Name" 
-                                                 style="width: 40px; height: 40px; object-fit: contain;" 
-                                                 class="border rounded bg-light p-1" />
-                                            <span class="fw-bold">@townNpc.Name</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="btn-group btn-group-sm">
-                                            <a asp-action="Details" asp-route-id="@townNpc.Id" class="btn btn-info text-white" title="Details">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            @if (User.IsInRole("Admin"))
-                                            {
-                                                <a asp-action="Edit" asp-route-id="@townNpc.Id" class="btn btn-warning" title="Edit">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <a asp-action="Delete" asp-route-id="@townNpc.Id" class="btn btn-danger" title="Delete">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
         </div>
     </div>
 </div>

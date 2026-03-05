@@ -4,43 +4,58 @@
     ViewData["Title"] = "Delete Boss";
 }
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow border-danger">
-                <div class="card-header bg-danger text-white">
-                    <h4 class="mb-0">
-                        <i class="bi bi-exclamation-triangle"></i> Delete Boss
-                    </h4>
+<div class="terraria-page">
+    <div class="terraria-page-wide">
+        <div class="table-page-card">
+            <div class="table-page-header">
+                <h4>Delete Boss</h4>
+                <div class="horizontal-container">
+                    <a asp-action="Index" asp-controller="Home" class="table-btn table-btn-sm">
+                        Home
+                    </a>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Are you sure you want to delete this boss?
-                    </div>
-
-                    <div class="text-center mb-4">
-                        <div class="d-inline-block p-3 border rounded bg-light">
-                            <img src="@Model.Sprite" alt="@Model.BossName" class="img-fluid" style="max-width: 100px;" />
-                            <div class="mt-2">
-                                <strong class="fs-5">@Model.BossName</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form asp-action="Delete" method="post">
-                        <input type="hidden" asp-for="BossName" />
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="bi bi-trash"></i> Confirm Delete
-                            </button>
-                            <a asp-action="Index" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </a>
-                        </div>
-                    </form>
+            </div>
+            <div class="table-page-body">
+                <div class="terraria-alert" style="border-color: #8b3a3a; background: #3a1e1e; color: #ff6b6b; margin-bottom: 20px;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Are you sure you want to delete this boss?
                 </div>
+
+                <div class="terraria-card" style="padding: 20px; margin-bottom: 20px; align-items: center; cursor: default; pointer-events: none;">
+                    <div class="card-icon" style="width: 100px; height: 100px;">
+                        <img src="@Model.Sprite" alt="@Model.BossName" class="@(string.IsNullOrEmpty(Model.Sprite) ? "small-img" : "")" />
+                    </div>
+                    <div class="card-title" style="font-size: 24px; margin-top: 15px;">@Model.BossName</div>
+                </div>
+
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="BossName" />
+                    <div class="horizontal-container mt-20">
+                        <button type="submit" class="table-btn table-btn-danger">
+                            Confirm Delete
+                        </button>
+                        <a asp-action="Index" class="table-btn">Back</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .terraria-card {
+        cursor: default;
+        pointer-events: none;
+    }
+
+        .terraria-card:hover {
+            transform: none !important;
+            box-shadow: 0 8px 0 #4a3c2c !important;
+            border-color: #8b6b4d !important;
+            background: linear-gradient(145deg, #3a2c20 0%, #2a1e14 100%) !important;
+        }
+
+    .bi {
+        margin-right: 5px;
+    }
+</style>

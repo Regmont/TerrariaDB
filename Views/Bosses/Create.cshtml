@@ -4,203 +4,230 @@
     ViewData["Title"] = "Create Boss";
 }
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-12">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="bi bi-plus-circle"></i> Create New Boss
-                    </h4>
+<div class="terraria-page">
+    <div class="terraria-page-wide">
+        <div class="table-page-card">
+            <div class="table-page-header">
+                <h4>Create New Boss</h4>
+                <div class="horizontal-container">
+                    <a asp-action="Index" asp-controller="Home" class="table-btn table-btn-sm">
+                        Home
+                    </a>
                 </div>
-                <div class="card-body">
-                    <form asp-action="Create" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            </div>
+            <div class="table-page-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="terraria-alert terraria-alert-info" role="alert"></div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label asp-for="BossName" class="form-label fw-bold"></label>
-                                <input asp-for="BossName" type="text" class="form-control" placeholder="Enter boss name" />
-                                <span asp-validation-for="BossName" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="SummonItemId" class="form-label fw-bold">Summon Item</label>
-                                <select asp-for="SummonItemId" asp-items="Model.AvailableItems" class="form-select">
-                                    <option value="">-- No summon item --</option>
-                                </select>
-                            </div>
+                    <div class="grid-2 mb-20">
+                        <div class="form-group">
+                            <div class="label-text">Boss Name</div>
+                            <input asp-for="BossName" type="text" placeholder="Enter boss name" />
+                            <span asp-validation-for="BossName" class="validation-message"></span>
                         </div>
-
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">Boss Drops</h5>
-                                <div class="row g-2">
-                                    @for (int i = 0; i < 15; i++)
-                                    {
-                                        <div class="col-md-2">
-                                            <div class="border rounded p-2 bg-white">
-                                                <select asp-for="BossDrops[i].ItemId" asp-items="Model.AvailableItems" class="form-select form-select-sm mb-2">
-                                                    <option value="">-- Item --</option>
-                                                </select>
-                                                <div class="input-group input-group-sm">
-                                                    <input asp-for="BossDrops[i].Quantity" type="number" class="form-control" min="1" max="150" value="1" />
-                                                    <button type="button" class="btn btn-outline-secondary clear-boss-drop" data-index="@i">
-                                                        <i class="bi bi-eraser"></i>
-                                                    </button>
-                                                </div>
-                                                <span asp-validation-for="BossDrops[i].Quantity" class="text-danger small"></span>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <div class="label-text">Summon Item</div>
+                            <select asp-for="SummonItemId" asp-items="Model.AvailableItems">
+                                <option value="">-- No summon item --</option>
+                            </select>
                         </div>
+                    </div>
 
-                        <h5 class="mb-3">Boss Parts</h5>
-                        <div class="accordion" id="bossPartsAccordion">
-                            @for (int i = 0; i < 5; i++)
+                    <div class="form-card">
+                        <h5>Boss Drops</h5>
+                        <div class="grid-5">
+                            @for (int i = 0; i < 15; i++)
                             {
-                                <div class="accordion-item boss-part mb-3" data-part="@i">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#part@(i)">
-                                            Part @(i + 1)
-                                        </button>
-                                    </h2>
-                                    <div id="part@(i)" class="accordion-collapse collapse" data-bs-parent="#bossPartsAccordion">
-                                        <div class="accordion-body">
-                                            <div class="row mb-3">
-                                                <div class="col-md-4">
-                                                    <label asp-for="BossParts[i].PartName" class="form-label small fw-bold">Part Name</label>
-                                                    <input asp-for="BossParts[i].PartName" type="text" class="form-control form-control-sm" />
-                                                    <span asp-validation-for="BossParts[i].PartName" class="text-danger small"></span>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label asp-for="BossParts[i].Description" class="form-label small fw-bold">Description</label>
-                                                    <input asp-for="BossParts[i].Description" type="text" class="form-control form-control-sm" />
-                                                    <span asp-validation-for="BossParts[i].Description" class="text-danger small"></span>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label asp-for="BossParts[i].Quantity" class="form-label small fw-bold">Quantity</label>
-                                                    <input asp-for="BossParts[i].Quantity" type="number" class="form-control form-control-sm" min="1" max="50" value="1" />
-                                                    <span asp-validation-for="BossParts[i].Quantity" class="text-danger small"></span>
-                                                </div>
-                                            </div>
-
-                                            <div class="row g-3">
-                                                @for (int j = 0; j < 2; j++)
-                                                {
-                                                    <div class="col-md-6">
-                                                        <div class="card border-secondary boss-stage" data-part="@i" data-stage="@j">
-                                                            <div class="card-header bg-secondary text-white">
-                                                                <h6 class="mb-0">Stage @(j + 1)</h6>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div class="mb-2">
-                                                                    <label asp-for="BossParts[i].Stages[j].Sprite" class="form-label small fw-bold">Sprite URL</label>
-                                                                    <input asp-for="BossParts[i].Stages[j].Sprite" type="text" class="form-control form-control-sm" />
-                                                                    <span asp-validation-for="BossParts[i].Stages[j].Sprite" class="text-danger small"></span>
-                                                                </div>
-
-                                                                <div class="row mb-2">
-                                                                    <div class="col-6">
-                                                                        <label asp-for="BossParts[i].Stages[j].Hp" class="form-label small fw-bold">HP</label>
-                                                                        <input asp-for="BossParts[i].Stages[j].Hp" type="number" class="form-control form-control-sm" min="0" max="150000" value="0" />
-                                                                        <span asp-validation-for="BossParts[i].Stages[j].Hp" class="text-danger small"></span>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label asp-for="BossParts[i].Stages[j].Defense" class="form-label small fw-bold">Defense</label>
-                                                                        <input asp-for="BossParts[i].Stages[j].Defense" type="number" class="form-control form-control-sm" min="0" max="100" value="0" />
-                                                                        <span asp-validation-for="BossParts[i].Stages[j].Defense" class="text-danger small"></span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="row mb-2">
-                                                                    <div class="col-6">
-                                                                        <label asp-for="BossParts[i].Stages[j].EntityId" class="form-label small fw-bold">Game ID</label>
-                                                                        <input asp-for="BossParts[i].Stages[j].EntityId" type="number" class="form-control form-control-sm" />
-                                                                        <span asp-validation-for="BossParts[i].Stages[j].EntityId" class="text-danger small"></span>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label asp-for="BossParts[i].Stages[j].ContactDamage" class="form-label small fw-bold">Contact Damage</label>
-                                                                        <input asp-for="BossParts[i].Stages[j].ContactDamage" type="number" class="form-control form-control-sm" min="0" max="500" value="0" />
-                                                                        <span asp-validation-for="BossParts[i].Stages[j].ContactDamage" class="text-danger small"></span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="mb-2">
-                                                                    <label class="form-label small fw-bold">Spawned Enemies</label>
-                                                                    <div class="row g-1">
-                                                                        @for (int k = 0; k < 3; k++)
-                                                                        {
-                                                                            <div class="col-4 spawned-enemy" data-part="@i" data-stage="@j" data-enemy="@k">
-                                                                                <select asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].EnemyId" asp-items="Model.AvailableEnemies" class="form-select form-select-sm mb-1">
-                                                                                    <option value="">-- Enemy --</option>
-                                                                                </select>
-                                                                                <div class="input-group input-group-sm">
-                                                                                    <input asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" type="number" class="form-control" min="1" max="50" value="1" />
-                                                                                    <button type="button" class="btn btn-outline-secondary clear-spawned-enemy" data-part="@i" data-stage="@j" data-enemy="@k">
-                                                                                        <i class="bi bi-eraser"></i>
-                                                                                    </button>
-                                                                                </div>
-                                                                                <span asp-validation-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" class="text-danger small"></span>
-                                                                            </div>
-                                                                        }
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="mb-2">
-                                                                    <label class="form-label small fw-bold">Drops</label>
-                                                                    <div class="row g-1">
-                                                                        @for (int k = 0; k < 3; k++)
-                                                                        {
-                                                                            <div class="col-4 stage-drop" data-part="@i" data-stage="@j" data-drop="@k">
-                                                                                <select asp-for="BossParts[i].Stages[j].Drops[k].ItemId" asp-items="Model.AvailableItems" class="form-select form-select-sm mb-1">
-                                                                                    <option value="">-- Item --</option>
-                                                                                </select>
-                                                                                <div class="input-group input-group-sm">
-                                                                                    <input asp-for="BossParts[i].Stages[j].Drops[k].Quantity" type="number" class="form-control" min="1" max="50" value="1" />
-                                                                                    <button type="button" class="btn btn-outline-secondary clear-stage-drop" data-part="@i" data-stage="@j" data-drop="@k">
-                                                                                        <i class="bi bi-eraser"></i>
-                                                                                    </button>
-                                                                                </div>
-                                                                                <span asp-validation-for="BossParts[i].Stages[j].Drops[k].Quantity" class="text-danger small"></span>
-                                                                            </div>
-                                                                        }
-                                                                    </div>
-                                                                </div>
-
-                                                                <button type="button" class="btn btn-sm btn-outline-danger w-100 clear-stage" data-part="@i" data-stage="@j">
-                                                                    <i class="bi bi-eraser"></i> Clear Stage
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
-
-                                            <button type="button" class="btn btn-outline-danger mt-3 clear-part" data-part="@i">
-                                                <i class="bi bi-eraser"></i> Clear Part
-                                            </button>
-                                        </div>
+                                <div class="form-group">
+                                    <select asp-for="BossDrops[i].ItemId" asp-items="Model.AvailableItems" data-val="false">
+                                        <option value="">-- Item --</option>
+                                    </select>
+                                    <div class="horizontal-container" style="margin-top: 5px;">
+                                        <input asp-for="BossDrops[i].Quantity" type="number" min="1" max="150" value="1" />
+                                        <button type="button" class="table-btn table-btn-sm clear-boss-drop" data-index="@i">Clear</button>
                                     </div>
+                                    <span asp-validation-for="BossDrops[i].Quantity" class="validation-message"></span>
                                 </div>
                             }
                         </div>
+                    </div>
 
-                        <div class="mt-4 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Save Boss
-                            </button>
-                            <a asp-action="Index" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </a>
+                    <div class="form-section">
+                        <div class="form-section-title">Boss Parts</div>
+                        <div class="grid-2">
+                            @for (int i = 0; i < 5; i++)
+                            {
+                                <div class="item-card boss-part" data-part="@i">
+                                    <div class="item-card-header">Part @(i + 1)</div>
+
+                                    <div class="form-group">
+                                        <div class="label-text">Part Name</div>
+                                        @if (i == 0)
+                                        {
+                                            <input asp-for="BossParts[i].PartName" type="text" />
+                                            <span asp-validation-for="BossParts[i].PartName" class="validation-message"></span>
+                                        }
+                                        else
+                                        {
+                                            <input asp-for="BossParts[i].PartName" type="text" data-val="false" />
+                                        }
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="label-text">Description</div>
+                                        <input asp-for="BossParts[i].Description" type="text" />
+                                        <span asp-validation-for="BossParts[i].Description" class="validation-message"></span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="label-text">Quantity</div>
+                                        <input asp-for="BossParts[i].Quantity" type="number" min="1" max="50" value="1" />
+                                        <span asp-validation-for="BossParts[i].Quantity" class="validation-message"></span>
+                                    </div>
+
+                                    <div class="grid-2" style="margin-top: 10px;">
+                                        @for (int j = 0; j < 2; j++)
+                                        {
+                                            <div class="item-card boss-stage" data-part="@i" data-stage="@j" style="padding: 8px;">
+                                                <div style="color: #c0a88c; margin-bottom: 8px;">Stage @(j + 1)</div>
+
+                                                <div class="form-group">
+                                                    <div class="label-text">Sprite URL</div>
+                                                    @if (i == 0 && j == 0)
+                                                    {
+                                                        <input asp-for="BossParts[i].Stages[j].Sprite" type="text" />
+                                                        <span asp-validation-for="BossParts[i].Stages[j].Sprite" class="validation-message"></span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <input asp-for="BossParts[i].Stages[j].Sprite" type="text" data-val="false" />
+                                                    }
+                                                </div>
+
+                                                <div class="grid-2" style="gap: 5px;">
+                                                    <div class="form-group">
+                                                        <div class="label-text">HP</div>
+                                                        <input asp-for="BossParts[i].Stages[j].Hp" type="number" min="0" max="150000" value="0" />
+                                                        <span asp-validation-for="BossParts[i].Stages[j].Hp" class="validation-message"></span>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="label-text">Defense</div>
+                                                        <input asp-for="BossParts[i].Stages[j].Defense" type="number" min="0" max="100" value="0" />
+                                                        <span asp-validation-for="BossParts[i].Stages[j].Defense" class="validation-message"></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="grid-2" style="gap: 5px;">
+                                                    <div class="form-group">
+                                                        <div class="label-text">Game ID</div>
+                                                        <input asp-for="BossParts[i].Stages[j].EntityId" type="number" />
+                                                        <span asp-validation-for="BossParts[i].Stages[j].EntityId" class="validation-message"></span>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="label-text">Contact Dmg</div>
+                                                        <input asp-for="BossParts[i].Stages[j].ContactDamage" type="number" min="0" max="500" value="0" />
+                                                        <span asp-validation-for="BossParts[i].Stages[j].ContactDamage" class="validation-message"></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <div class="label-text">Spawned Enemies</div>
+                                                    @for (int k = 0; k < 3; k++)
+                                                    {
+                                                        <div style="margin-bottom: 5px;">
+                                                            <select asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].EnemyId" asp-items="Model.AvailableEnemies" data-val="false">
+                                                                <option value="">-- Enemy --</option>
+                                                            </select>
+                                                            <div class="horizontal-container" style="margin-top: 2px;">
+                                                                <input asp-for="BossParts[i].Stages[j].SpawnedEnemies[k].Quantity" type="number" min="1" max="50" value="1" />
+                                                                <button type="button" class="table-btn table-btn-sm clear-spawned-enemy" data-part="@i" data-stage="@j" data-enemy="@k">Clear</button>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <div class="label-text">Drops</div>
+                                                    @for (int k = 0; k < 3; k++)
+                                                    {
+                                                        <div style="margin-bottom: 5px;">
+                                                            <select asp-for="BossParts[i].Stages[j].Drops[k].ItemId" asp-items="Model.AvailableItems" data-val="false">
+                                                                <option value="">-- Item --</option>
+                                                            </select>
+                                                            <div class="horizontal-container" style="margin-top: 2px;">
+                                                                <input asp-for="BossParts[i].Stages[j].Drops[k].Quantity" type="number" min="1" max="50" value="1" />
+                                                                <button type="button" class="table-btn table-btn-sm clear-stage-drop" data-part="@i" data-stage="@j" data-drop="@k">Clear</button>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                <button type="button" class="table-btn table-btn-sm table-btn-danger w-100 clear-stage" data-part="@i" data-stage="@j" style="margin-top: 5px;">Clear Stage</button>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <button type="button" class="table-btn table-btn-sm table-btn-danger w-100 clear-part" data-part="@i" style="margin-top: 10px;">Clear Part</button>
+                                </div>
+                            }
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="horizontal-container mt-20">
+                        <button type="submit" class="table-btn table-btn-success">Save Boss</button>
+                        <a asp-action="Index" class="table-btn">Back</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    input, input:focus, input:active, input:hover,
+    select, select:focus, select:active, select:hover {
+        background-color: #1a1f2e !important;
+        border: 2px solid #8b6b4d !important;
+        color: #ffd700 !important;
+        font-family: 'Courier New', monospace !important;
+        font-size: 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+        outline: none !important;
+    }
+
+        select option {
+            background-color: #1a1f2e !important;
+            color: #ffd700 !important;
+        }
+
+        input:focus, select:focus {
+            border-color: #c0a88c !important;
+            background-color: #141229 !important;
+        }
+
+            input:focus:not(:placeholder-shown),
+            select:focus:not(:placeholder-shown) {
+                background-color: #0f1420 !important;
+                border-color: #ffd700 !important;
+            }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus,
+        select:-webkit-autofill:active {
+            background-color: #0f1420 !important;
+            border-color: #ffd700 !important;
+            -webkit-text-fill-color: #ffd700 !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0f1420 inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+</style>
 
 @section Scripts {
     @{
@@ -208,80 +235,15 @@
     }
 
     <script>
-        document.querySelectorAll('.clear-boss-drop').forEach(button => {
+        document.querySelectorAll('.clear-boss-drop, .clear-spawned-enemy, .clear-stage-drop, .clear-stage, .clear-part').forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
-                const dropDiv = this.closest('div[class*="col-"]');
-                const select = dropDiv.querySelector('select');
-                const input = dropDiv.querySelector('input[type="number"]');
+                const target = this.closest('.form-group, .boss-stage, .boss-part, [class*="col-"]');
+                const selects = target.querySelectorAll('select');
+                const inputs = target.querySelectorAll('input[type="number"]');
 
-                if (select) select.selectedIndex = 0;
-                if (input) input.value = 1;
-            });
-        });
-
-        document.querySelectorAll('.clear-spawned-enemy').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const enemyDiv = this.closest('.spawned-enemy');
-                const select = enemyDiv.querySelector('select');
-                const input = enemyDiv.querySelector('input[type="number"]');
-
-                if (select) select.selectedIndex = 0;
-                if (input) input.value = 1;
-            });
-        });
-
-        document.querySelectorAll('.clear-stage-drop').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const dropDiv = this.closest('.stage-drop');
-                const select = dropDiv.querySelector('select');
-                const input = dropDiv.querySelector('input[type="number"]');
-
-                if (select) select.selectedIndex = 0;
-                if (input) input.value = 1;
-            });
-        });
-
-        document.querySelectorAll('.clear-stage').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const part = this.getAttribute('data-part');
-                const stage = this.getAttribute('data-stage');
-                const stageDiv = document.querySelector(`.boss-stage[data-part="${part}"][data-stage="${stage}"]`);
-
-                const inputs = stageDiv.querySelectorAll('input[type="number"]:not([readonly]), input[type="text"]');
-                const selects = stageDiv.querySelectorAll('select');
-
-                inputs.forEach(input => {
-                    if (input.type === 'number') input.value = input.getAttribute('min') || 1;
-                    else input.value = '';
-                });
-
-                selects.forEach(select => {
-                    select.selectedIndex = 0;
-                });
-            });
-        });
-
-        document.querySelectorAll('.clear-part').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const part = this.getAttribute('data-part');
-                const partDiv = document.querySelector(`.boss-part[data-part="${part}"]`);
-
-                const inputs = partDiv.querySelectorAll('input[type="number"]:not([readonly]), input[type="text"]');
-                const selects = partDiv.querySelectorAll('select');
-
-                inputs.forEach(input => {
-                    if (input.type === 'number') input.value = input.getAttribute('min') || 1;
-                    else input.value = '';
-                });
-
-                selects.forEach(select => {
-                    select.selectedIndex = 0;
-                });
+                selects.forEach(select => select.selectedIndex = 0);
+                inputs.forEach(input => input.value = input.min || 1);
             });
         });
     </script>

@@ -64,70 +64,6 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        // GET: TradeTypes/Edit/5
-        public IActionResult Edit(string tradeTypeName)
-        {
-            if (!TradeTypeExists(tradeTypeName))
-            {
-                return NotFound();
-            }
-
-            var viewModel = new TradeTypeEditViewModel
-            {
-                OriginalTradeTypeName = tradeTypeName,
-                TradeTypeName = tradeTypeName
-            };
-
-            return View(viewModel);
-        }
-
-        // POST: TradeTypes/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(TradeTypeEditViewModel viewModel)
-        {
-            if (ModelState.IsValid)
-            {
-                var tradeType = await _context.TradeType
-                    .Include(tt => tt.TradeOffers)
-                    .FirstOrDefaultAsync(tt => tt.TradeTypeName == viewModel.OriginalTradeTypeName);
-
-                if (tradeType == null)
-                {
-                    return NotFound();
-                }
-
-                if (viewModel.OriginalTradeTypeName != viewModel.TradeTypeName &&
-                    await _context.TradeType.AnyAsync(tt => tt.TradeTypeName == viewModel.TradeTypeName))
-                {
-                    ModelState.AddModelError("TradeTypeName", "A trade type with this name already exists");
-                    return View(viewModel);
-                }
-
-                foreach (var offer in tradeType.TradeOffers)
-                {
-                    offer.TradeTypeName = viewModel.TradeTypeName;
-                }
-
-                tradeType.TradeTypeName = viewModel.TradeTypeName;
-
-                try
-                {
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TradeTypeExists(viewModel.OriginalTradeTypeName))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
-            }
-            return View(viewModel);
-        }
-
         // GET: TradeTypes/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
@@ -177,11 +113,6 @@ namespace TerrariaDB.Controllers.Terraria
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool TradeTypeExists(string id)
-        {
-            return _context.TradeType.Any(e => e.TradeTypeName == id);
         }
     }
 }

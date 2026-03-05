@@ -23,7 +23,7 @@ namespace TerrariaDB.ViewModels.Terraria.Item
 
         public string? CraftingStationName { get; set; }
 
-        [ValidateStages(ErrorMessage = "At least one stage must be selected")]
+        //[ValidateStages(ErrorMessage = "At least one stage must be selected")]
         public List<string> StageItemIds { get; set; } = new();
 
         public List<SelectListItem> AvailableCurrencies { get; set; } = new();

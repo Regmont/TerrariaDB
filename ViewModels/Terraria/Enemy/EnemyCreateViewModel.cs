@@ -10,7 +10,7 @@ namespace TerrariaDB.ViewModels.Terraria.Enemy
         public string Name { get; set; } = string.Empty;
 
         [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
 
         public List<EnemyStageViewModel> Stages { get; set; } = new();
         public List<SelectListItem> AvailableItems { get; set; } = new();

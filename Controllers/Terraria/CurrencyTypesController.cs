@@ -64,70 +64,6 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        // GET: CurrencyTypes/Edit/5
-        public IActionResult Edit(string currencyName)
-        {
-            if (!CurrencyTypeExists(currencyName))
-            {
-                return NotFound();
-            }
-
-            var viewModel = new CurrencyTypeEditViewModel
-            {
-                OriginalCurrencyName = currencyName,
-                CurrencyName = currencyName
-            };
-
-            return View(viewModel);
-        }
-
-        // POST: CurrencyTypes/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(CurrencyTypeEditViewModel viewModel)
-        {
-            if (ModelState.IsValid)
-            {
-                var currencyType = await _context.CurrencyType
-                    .Include(ct => ct.Items)
-                    .FirstOrDefaultAsync(ct => ct.CurrencyName == viewModel.OriginalCurrencyName);
-
-                if (currencyType == null)
-                {
-                    return NotFound();
-                }
-
-                if (viewModel.OriginalCurrencyName != viewModel.CurrencyName &&
-                    await _context.CurrencyType.AnyAsync(ct => ct.CurrencyName == viewModel.CurrencyName))
-                {
-                    ModelState.AddModelError("CurrencyName", "A currency type with this name already exists");
-                    return View(viewModel);
-                }
-
-                foreach (var item in currencyType.Items)
-                {
-                    item.CurrencyName = viewModel.CurrencyName;
-                }
-
-                currencyType.CurrencyName = viewModel.CurrencyName;
-
-                try
-                {
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!CurrencyTypeExists(viewModel.OriginalCurrencyName))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
-            }
-            return View(viewModel);
-        }
-
         // GET: CurrencyTypes/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
@@ -170,6 +106,7 @@ namespace TerrariaDB.Controllers.Terraria
                     CurrencyName = currencyType.CurrencyName,
                     HasRelatedItems = true
                 };
+
                 return View(errorViewModel);
             }
 
@@ -177,11 +114,6 @@ namespace TerrariaDB.Controllers.Terraria
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool CurrencyTypeExists(string id)
-        {
-            return _context.CurrencyType.Any(e => e.CurrencyName == id);
         }
     }
 }

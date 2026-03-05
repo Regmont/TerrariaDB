@@ -2,39 +2,90 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="terraria-container">
-    <div class="header">
-        <h1>TERRARIA <span>COMPENDIUM</span></h1>
-    </div>
-
-    <div class="hero-section">
-        <div class="description-container">
-            <p class="hero-text">Complete database of Terraria content. Explore bosses, enemies, items, and crafting recipes from the world of Terraria.</p>
+<div class="body-horizontal">
+    <div class="terraria-container">
+        <div class="header">
+            <h1>TERRARIA <span>COMPENDIUM</span></h1>
         </div>
-        <div class="recipe-card-wrapper">
-            <a asp-controller="Recipes" asp-action="Index" class="terraria-card">
-                <div class="card-icon"></div>
-                <span class="card-title">Recipe System</span>
+
+        <div class="hero-section">
+            <div class="description-container">
+                <p class="hero-text">Complete database of Terraria content. Explore bosses, enemies, items, and crafting recipes from the world of Terraria.</p>
+            </div>
+            <div class="recipe-card-wrapper">
+                <a asp-controller="Recipes" asp-action="Index" class="terraria-card">
+                    <img src="https://terraria.wiki.gg/images/Portrait_Guide_shimmer.png?c7518b&format=original" class="card-icon" />
+                    <span class="card-title">Recipe System</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="main-cards">
+            <a asp-controller="Bosses" asp-action="Index" class="terraria-card">
+                <div class="card-icon">
+                    <img src="https://terraria.wiki.gg/images/Eye_of_Cthulhu.png?ccceac&format=original" />
+                </div>
+                
+                <span class="card-title">Bosses</span>
+            </a>
+            <a asp-controller="Enemies" asp-action="Index" class="terraria-card">
+                <div class="card-icon">
+                    <img src="https://terraria.wiki.gg/images/Zombie_%28old%29.png?45f605" />
+                </div>
+                
+                <span class="card-title">Enemies</span>
+            </a>
+            <a asp-controller="TownNpcs" asp-action="Index" class="terraria-card">
+                <div class="card-icon">
+                    <img src="https://terraria.wiki.gg/images/Guide.png?eebef6"/>
+                </div>
+                
+                <span class="card-title">NPCs</span>
+            </a>
+            <a asp-controller="Items" asp-action="Index" class="terraria-card">
+                <div class="card-icon">
+                    <img src="https://terraria.wiki.gg/images/Copper_Pickaxe.png?ad0b13" />
+                </div>
+                
+                <span class="card-title">Items</span>
             </a>
         </div>
     </div>
 
-    <div class="main-cards">
-        <a asp-controller="Bosses" asp-action="Index" class="terraria-card">
-            <div class="card-icon"></div>
-            <span class="card-title">Bosses</span>
-        </a>
-        <a asp-controller="Enemies" asp-action="Index" class="terraria-card">
-            <div class="card-icon"></div>
-            <span class="card-title">Enemies</span>
-        </a>
-        <a asp-controller="TownNpcs" asp-action="Index" class="terraria-card">
-            <div class="card-icon"></div>
-            <span class="card-title">NPCs</span>
-        </a>
-        <a asp-controller="Items" asp-action="Index" class="terraria-card">
-            <div class="card-icon"></div>
-            <span class="card-title">Items</span>
-        </a>
-    </div>
+    <aside class="registries-sidebar">
+        <h2 class="sidebar-title">Registries</h2>
+        <div class="vertical-scrollbar-container">
+            <a asp-controller="CraftingStations" asp-action="Index" class="terraria-card">
+                <div class="card-icon">
+                    <img src="https://terraria.wiki.gg/images/Work_Bench.png?3cd713&format=original" />
+                </div>
+                
+                <span class="card-title">Crafting Stations</span>
+            </a>
+            <a asp-controller="Entities" asp-action="Index" class="terraria-card">
+                <div class="card-icon">
+                    <img src="https://terraria.wiki.gg/images/Creeper.png?9e082a&format=original" />
+                </div>
+
+                <span class="card-title">Entities</span>
+            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="TradeTypes" asp-action="Index" class="terraria-card">
+                    <div class="card-icon">
+                        <img src="https://terraria.wiki.gg/images/Merchant.png?b4d9c3&format=original" />
+                    </div>
+
+                    <span class="card-title">Trade Types</span>
+                </a>
+                <a asp-controller="CurrencyTypes" asp-action="Index" class="terraria-card">
+                    <div class="card-icon">
+                        <img src="https://terraria.wiki.gg/images/Gold_Coin.png?c6fdb6" class="small-img" />
+                    </div>
+
+                    <span class="card-title">Currency Types</span>
+                </a>
+            }
+        </div>
+    </aside>
 </div>

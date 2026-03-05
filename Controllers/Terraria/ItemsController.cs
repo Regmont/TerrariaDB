@@ -159,19 +159,9 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
-                viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
-
             for (int i = 0; i < 4; i++)
             {
-                viewModel.StageItemIds.Add(string.Empty);
+                viewModel.Stages.Add(new StageSpriteViewModel());
             }
 
             return View(viewModel);
@@ -199,325 +189,329 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
+            var itemIds = new short?[]
+            {
+        viewModel.FirstItemId,
+        viewModel.SecondItemId,
+        viewModel.ThirdItemId,
+        viewModel.FourthItemId
+            };
+
+            var validStages = new List<(short ItemId, StageSpriteViewModel Stage)>();
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (!string.IsNullOrEmpty(viewModel.Stages[i].Sprite))
                 {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+                    if (itemIds[i] == null)
+                    {
+                        ModelState.AddModelError("", $"Item ID for stage {i + 1} is required");
+                    }
+                    else
+                    {
+                        if (await _context.Item.AnyAsync(it => it.ItemId == itemIds[i]!.Value))
+                        {
+                            ModelState.AddModelError("", $"Item with ID {itemIds[i]!.Value} already exists");
+                        }
+                        validStages.Add((itemIds[i]!.Value, viewModel.Stages[i]));
+                    }
+                }
+            }
+
+            if (!validStages.Any())
+            {
+                ModelState.AddModelError("Stages", "At least first stage is required");
+            }
+
+            if (await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
+            {
+                ModelState.AddModelError("Name", "An item with this name already exists");
+            }
+
+            if (string.IsNullOrEmpty(viewModel.Description))
+            {
+                ModelState.Remove("Description");
+            }
+
+            for (int i = 1; i < viewModel.Stages.Count; i++)
+            {
+                if (string.IsNullOrEmpty(viewModel.Stages[i].Sprite))
+                {
+                    ModelState.Remove($"Stages[{i}].Sprite");
+                }
+            }
+
+            if (viewModel.SecondItemId == null)
+                ModelState.Remove("SecondItemId");
+            if (viewModel.ThirdItemId == null)
+                ModelState.Remove("ThirdItemId");
+            if (viewModel.FourthItemId == null)
+                ModelState.Remove("FourthItemId");
 
             if (ModelState.IsValid)
             {
-                if (await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
-                {
-                    ModelState.AddModelError("Name", "An item with this name already exists");
-                    return View(viewModel);
-                }
-
-                var firstStageItem = await _context.Item
-                    .Include(i => i.GameObject)
-                    .FirstOrDefaultAsync(i => i.ItemId == short.Parse(viewModel.StageItemIds[0]));
-
-                if (firstStageItem != null)
-                {
-                    var sprite = firstStageItem.GameObject.Sprite;
-                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite && go.GameObjectName != viewModel.Name))
-                    {
-                        ModelState.AddModelError("StageItemIds[0]", "An item with this sprite already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var validStages = viewModel.StageItemIds
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Select(id => short.Parse(id))
-                    .ToList();
-
-                GameObject? previousGameObject = null;
-
                 for (int i = 0; i < validStages.Count; i++)
                 {
-                    var stageItemId = validStages[i];
-                    var stageItem = await _context.Item
-                        .Include(i => i.GameObject)
-                        .FirstOrDefaultAsync(i => i.ItemId == stageItemId);
-
-                    if (stageItem == null)
-                    {
-                        ModelState.AddModelError("", $"Item with ID {stageItemId} not found");
-                        return View(viewModel);
-                    }
-
+                    var (itemId, stage) = validStages[i];
                     var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
-
-                    if (await _context.GameObject.AnyAsync(go => go.GameObjectName == gameObjectName))
-                    {
-                        ModelState.AddModelError("", $"Game object with name '{gameObjectName}' already exists");
-                        return View(viewModel);
-                    }
 
                     var gameObject = new GameObject
                     {
                         GameObjectName = gameObjectName,
-                        Description = i == 0 ? viewModel.Description : null,
-                        Sprite = stageItem.GameObject.Sprite,
-                        TransformName = previousGameObject?.GameObjectName
+                        Description = viewModel.Description,
+                        Sprite = stage.Sprite,
+                        TransformName = i < validStages.Count - 1 ? $"{viewModel.Name}_{i + 2}" : null
                     };
 
                     _context.GameObject.Add(gameObject);
 
-                    stageItem.GameObjectName = gameObject.GameObjectName;
-                    if (i == 0)
+                    var item = new Item
                     {
-                        stageItem.BasePrice = viewModel.BasePrice;
-                        stageItem.CurrencyName = viewModel.CurrencyName;
-                        stageItem.CraftingStationName = viewModel.CraftingStationName;
-                    }
+                        ItemId = itemId,
+                        GameObjectName = gameObject.GameObjectName,
+                        BasePrice = i == 0 ? viewModel.BasePrice : 0,
+                        CurrencyName = viewModel.CurrencyName,
+                        CraftingStationName = i == 0 ? viewModel.CraftingStationName : null
+                    };
 
-                    _context.Item.Update(stageItem);
-
-                    previousGameObject = gameObject;
+                    _context.Item.Add(item);
                 }
 
                 await _context.SaveChangesAsync();
-
                 return RedirectToAction(nameof(Index));
             }
 
             return View(viewModel);
         }
 
-        // GET: Items/Edit/5
-        [Authorize(Roles = "Admin")]
-        public IActionResult Edit(int id)
-        {
-            var item = _context.Item
-                .Include(i => i.GameObject)
-                    .ThenInclude(go => go.Transform)
-                .Include(i => i.CurrencyType)
-                .Include(i => i.CraftingStation)
-                .FirstOrDefault(i => i.ItemId == id);
+        //// GET: Items/Edit/5
+        //[Authorize(Roles = "Admin")]
+        //public IActionResult Edit(int id)
+        //{
+        //    var item = _context.Item
+        //        .Include(i => i.GameObject)
+        //            .ThenInclude(go => go.Transform)
+        //        .Include(i => i.CurrencyType)
+        //        .Include(i => i.CraftingStation)
+        //        .FirstOrDefault(i => i.ItemId == id);
 
-            if (item == null)
-            {
-                return NotFound();
-            }
+        //    if (item == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            var viewModel = new ItemEditViewModel
-            {
-                ItemId = item.ItemId.ToString(),
-                Name = item.GameObject.GameObjectName,
-                Description = item.GameObject.Description ?? string.Empty,
-                BasePrice = item.BasePrice,
-                CurrencyName = item.CurrencyName,
-                CraftingStationName = item.CraftingStationName
-            };
+        //    var viewModel = new ItemEditViewModel
+        //    {
+        //        ItemId = item.ItemId.ToString(),
+        //        Name = item.GameObject.GameObjectName,
+        //        Description = item.GameObject.Description ?? string.Empty,
+        //        BasePrice = item.BasePrice,
+        //        CurrencyName = item.CurrencyName,
+        //        CraftingStationName = item.CraftingStationName
+        //    };
 
-            viewModel.AvailableCurrencies = _context.CurrencyType
-                .Select(ct => new SelectListItem
-                {
-                    Value = ct.CurrencyName,
-                    Text = ct.CurrencyName
-                })
-                .ToList();
+        //    viewModel.AvailableCurrencies = _context.CurrencyType
+        //        .Select(ct => new SelectListItem
+        //        {
+        //            Value = ct.CurrencyName,
+        //            Text = ct.CurrencyName
+        //        })
+        //        .ToList();
 
-            viewModel.AvailableCraftingStations = _context.CraftingStation
-                .Select(cs => new SelectListItem
-                {
-                    Value = cs.CraftingStationName,
-                    Text = cs.CraftingStationName
-                })
-                .ToList();
+        //    viewModel.AvailableCraftingStations = _context.CraftingStation
+        //        .Select(cs => new SelectListItem
+        //        {
+        //            Value = cs.CraftingStationName,
+        //            Text = cs.CraftingStationName
+        //        })
+        //        .ToList();
 
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
 
-            var currentItem = item;
-            for (int i = 0; i < 4; i++)
-            {
-                if (currentItem != null)
-                {
-                    viewModel.StageItemIds.Add(currentItem.ItemId.ToString());
-                    currentItem = currentItem.GameObject.Transform != null
-                        ? _context.Item.FirstOrDefault(i => i.GameObjectName == currentItem.GameObject.Transform.GameObjectName)
-                        : null;
-                }
-                else
-                {
-                    viewModel.StageItemIds.Add(string.Empty);
-                }
-            }
+        //    var currentItem = item;
+        //    for (int i = 0; i < 4; i++)
+        //    {
+        //        if (currentItem != null)
+        //        {
+        //            viewModel.StageItemIds.Add(currentItem.ItemId.ToString());
+        //            currentItem = currentItem.GameObject.Transform != null
+        //                ? _context.Item.FirstOrDefault(i => i.GameObjectName == currentItem.GameObject.Transform.GameObjectName)
+        //                : null;
+        //        }
+        //        else
+        //        {
+        //            viewModel.StageItemIds.Add(string.Empty);
+        //        }
+        //    }
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
-        // POST: Items/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(ItemEditViewModel viewModel)
-        {
-            viewModel.AvailableCurrencies = _context.CurrencyType
-                .Select(ct => new SelectListItem
-                {
-                    Value = ct.CurrencyName,
-                    Text = ct.CurrencyName
-                })
-                .ToList();
+        //// POST: Items/Edit/5
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> Edit(ItemEditViewModel viewModel)
+        //{
+        //    viewModel.AvailableCurrencies = _context.CurrencyType
+        //        .Select(ct => new SelectListItem
+        //        {
+        //            Value = ct.CurrencyName,
+        //            Text = ct.CurrencyName
+        //        })
+        //        .ToList();
 
-            viewModel.AvailableCraftingStations = _context.CraftingStation
-                .Select(cs => new SelectListItem
-                {
-                    Value = cs.CraftingStationName,
-                    Text = cs.CraftingStationName
-                })
-                .ToList();
+        //    viewModel.AvailableCraftingStations = _context.CraftingStation
+        //        .Select(cs => new SelectListItem
+        //        {
+        //            Value = cs.CraftingStationName,
+        //            Text = cs.CraftingStationName
+        //        })
+        //        .ToList();
 
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
 
-            if (ModelState.IsValid)
-            {
-                var originalItem = await _context.Item
-                    .Include(i => i.GameObject)
-                    .FirstOrDefaultAsync(i => i.ItemId == short.Parse(viewModel.ItemId));
+        //    if (ModelState.IsValid)
+        //    {
+        //        var originalItem = await _context.Item
+        //            .Include(i => i.GameObject)
+        //            .FirstOrDefaultAsync(i => i.ItemId == short.Parse(viewModel.ItemId));
 
-                if (originalItem == null)
-                {
-                    return NotFound();
-                }
+        //        if (originalItem == null)
+        //        {
+        //            return NotFound();
+        //        }
 
-                if (originalItem.GameObject.GameObjectName != viewModel.Name &&
-                    await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
-                {
-                    ModelState.AddModelError("Name", "An item with this name already exists");
-                    return View(viewModel);
-                }
+        //        if (originalItem.GameObject.GameObjectName != viewModel.Name &&
+        //            await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
+        //        {
+        //            ModelState.AddModelError("Name", "An item with this name already exists");
+        //            return View(viewModel);
+        //        }
 
-                var existingGameObjects = new List<GameObject>();
-                var current = originalItem.GameObject;
-                while (current != null)
-                {
-                    existingGameObjects.Add(current);
-                    current = await _context.GameObject
-                        .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
-                }
+        //        var existingGameObjects = new List<GameObject>();
+        //        var current = originalItem.GameObject;
+        //        while (current != null)
+        //        {
+        //            existingGameObjects.Add(current);
+        //            current = await _context.GameObject
+        //                .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+        //        }
 
-                var validStages = viewModel.StageItemIds
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Select(id => short.Parse(id))
-                    .ToList();
+        //        var validStages = viewModel.StageItemIds
+        //            .Where(id => !string.IsNullOrEmpty(id))
+        //            .Select(id => short.Parse(id))
+        //            .ToList();
 
-                var stageItems = new List<Item>();
-                foreach (var stageItemId in validStages)
-                {
-                    var stageItem = await _context.Item
-                        .Include(i => i.GameObject)
-                        .FirstOrDefaultAsync(i => i.ItemId == stageItemId);
+        //        var stageItems = new List<Item>();
+        //        foreach (var stageItemId in validStages)
+        //        {
+        //            var stageItem = await _context.Item
+        //                .Include(i => i.GameObject)
+        //                .FirstOrDefaultAsync(i => i.ItemId == stageItemId);
 
-                    if (stageItem == null)
-                    {
-                        ModelState.AddModelError("", $"Item with ID {stageItemId} not found");
-                        return View(viewModel);
-                    }
-                    stageItems.Add(stageItem);
-                }
+        //            if (stageItem == null)
+        //            {
+        //                ModelState.AddModelError("", $"Item with ID {stageItemId} not found");
+        //                return View(viewModel);
+        //            }
+        //            stageItems.Add(stageItem);
+        //        }
 
-                GameObject? previousGameObject = null;
+        //        GameObject? previousGameObject = null;
 
-                for (int i = 0; i < validStages.Count; i++)
-                {
-                    var stageItem = stageItems[i];
-                    var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+        //        for (int i = 0; i < validStages.Count; i++)
+        //        {
+        //            var stageItem = stageItems[i];
+        //            var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
 
-                    GameObject gameObject;
+        //            GameObject gameObject;
 
-                    if (i < existingGameObjects.Count)
-                    {
-                        gameObject = existingGameObjects[i];
-                        gameObject.GameObjectName = gameObjectName;
-                        gameObject.Description = i == 0 ? viewModel.Description : null;
-                        gameObject.Sprite = stageItem.GameObject.Sprite;
-                        gameObject.TransformName = previousGameObject?.GameObjectName;
+        //            if (i < existingGameObjects.Count)
+        //            {
+        //                gameObject = existingGameObjects[i];
+        //                gameObject.GameObjectName = gameObjectName;
+        //                gameObject.Description = i == 0 ? viewModel.Description : null;
+        //                gameObject.Sprite = stageItem.GameObject.Sprite;
+        //                gameObject.TransformName = previousGameObject?.GameObjectName;
 
-                        _context.GameObject.Update(gameObject);
-                    }
-                    else
-                    {
-                        gameObject = new GameObject
-                        {
-                            GameObjectName = gameObjectName,
-                            Description = i == 0 ? viewModel.Description : null,
-                            Sprite = stageItem.GameObject.Sprite,
-                            TransformName = previousGameObject?.GameObjectName
-                        };
+        //                _context.GameObject.Update(gameObject);
+        //            }
+        //            else
+        //            {
+        //                gameObject = new GameObject
+        //                {
+        //                    GameObjectName = gameObjectName,
+        //                    Description = i == 0 ? viewModel.Description : null,
+        //                    Sprite = stageItem.GameObject.Sprite,
+        //                    TransformName = previousGameObject?.GameObjectName
+        //                };
 
-                        _context.GameObject.Add(gameObject);
-                    }
+        //                _context.GameObject.Add(gameObject);
+        //            }
 
-                    stageItem.GameObjectName = gameObject.GameObjectName;
-                    if (i == 0)
-                    {
-                        stageItem.BasePrice = viewModel.BasePrice;
-                        stageItem.CurrencyName = viewModel.CurrencyName;
-                        stageItem.CraftingStationName = viewModel.CraftingStationName;
-                    }
+        //            stageItem.GameObjectName = gameObject.GameObjectName;
+        //            if (i == 0)
+        //            {
+        //                stageItem.BasePrice = viewModel.BasePrice;
+        //                stageItem.CurrencyName = viewModel.CurrencyName;
+        //                stageItem.CraftingStationName = viewModel.CraftingStationName;
+        //            }
 
-                    _context.Item.Update(stageItem);
+        //            _context.Item.Update(stageItem);
 
-                    previousGameObject = gameObject;
-                }
+        //            previousGameObject = gameObject;
+        //        }
 
-                for (int i = validStages.Count; i < existingGameObjects.Count; i++)
-                {
-                    var extraGo = existingGameObjects[i];
+        //        for (int i = validStages.Count; i < existingGameObjects.Count; i++)
+        //        {
+        //            var extraGo = existingGameObjects[i];
 
-                    var extraItem = await _context.Item
-                        .FirstOrDefaultAsync(item => item.GameObjectName == extraGo.GameObjectName);
+        //            var extraItem = await _context.Item
+        //                .FirstOrDefaultAsync(item => item.GameObjectName == extraGo.GameObjectName);
 
-                    if (extraItem != null)
-                    {
-                        _context.Item.Remove(extraItem);
-                    }
+        //            if (extraItem != null)
+        //            {
+        //                _context.Item.Remove(extraItem);
+        //            }
 
-                    _context.GameObject.Remove(extraGo);
-                }
+        //            _context.GameObject.Remove(extraGo);
+        //        }
 
-                try
-                {
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ItemExists(short.Parse(viewModel.ItemId)))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
+        //        try
+        //        {
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch (DbUpdateConcurrencyException)
+        //        {
+        //            if (!ItemExists(short.Parse(viewModel.ItemId)))
+        //            {
+        //                return NotFound();
+        //            }
+        //            throw;
+        //        }
 
-                return RedirectToAction(nameof(Index));
-            }
+        //        return RedirectToAction(nameof(Index));
+        //    }
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
         // GET: Items/Delete/5
         [Authorize(Roles = "Admin")]

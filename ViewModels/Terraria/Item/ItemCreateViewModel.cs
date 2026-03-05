@@ -5,6 +5,14 @@ namespace TerrariaDB.ViewModels.Terraria.Item
 {
     public class ItemCreateViewModel
     {
+        [Required(ErrorMessage = "First item ID is required")]
+        [Range(0, 10000, ErrorMessage = "Item ID must be between 0 and 10000")]
+        public short FirstItemId { get; set; }
+
+        public short? SecondItemId { get; set; }
+        public short? ThirdItemId { get; set; }
+        public short? FourthItemId { get; set; }
+
         [Required(ErrorMessage = "Item name is required")]
         [StringLength(50, ErrorMessage = "Item name cannot exceed 50 characters")]
         public string Name { get; set; } = string.Empty;
@@ -21,24 +29,15 @@ namespace TerrariaDB.ViewModels.Terraria.Item
 
         public string? CraftingStationName { get; set; }
 
-        [ValidateStages(ErrorMessage = "At least one stage must be selected")]
-        public List<string> StageItemIds { get; set; } = new();
+        public List<StageSpriteViewModel> Stages { get; set; } = new();
 
         public List<SelectListItem> AvailableCurrencies { get; set; } = new();
         public List<SelectListItem> AvailableCraftingStations { get; set; } = new();
-        public List<SelectListItem> AvailableItems { get; set; } = new();
     }
 
-    public class ValidateStagesAttribute : ValidationAttribute
+    public class StageSpriteViewModel
     {
-        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
-        {
-            var stageIds = value as List<string>;
-            if (stageIds == null || !stageIds.Any(id => !string.IsNullOrEmpty(id)))
-            {
-                return new ValidationResult(ErrorMessage ?? "At least one stage must be selected");
-            }
-            return ValidationResult.Success;
-        }
+        [Required(ErrorMessage = "First stage sprite is required")]
+        public string Sprite { get; set; } = string.Empty;
     }
 }

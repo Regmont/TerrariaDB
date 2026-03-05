@@ -4,37 +4,84 @@
     ViewData["Title"] = "Create Trade Type";
 }
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Create Trade Type</h4>
+<div class="terraria-page">
+    <div class="terraria-page-wide">
+        <div class="table-page-card">
+            <div class="table-page-header">
+                <h4>Create Trade Type</h4>
+                <div class="horizontal-container">
+                    <a asp-action="Index" asp-controller="Home" class="table-btn table-btn-sm">
+                        Home
+                    </a>
                 </div>
-                <div class="card-body">
-                    <form asp-action="Create" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            </div>
+            <div class="table-page-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="terraria-alert terraria-alert-info" role="alert"></div>
 
-                        <div class="mb-3">
-                            <label asp-for="TradeTypeName" class="form-label fw-bold"></label>
-                            <input asp-for="TradeTypeName" class="form-control" placeholder="Enter trade type name (e.g., Buy, Sell, Exchange)" />
-                            <span asp-validation-for="TradeTypeName" class="text-danger"></span>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <div class="label-text">Trade Type Name</div>
+                            <input asp-for="TradeTypeName" type="text" placeholder="Enter trade type name" />
+                            <span asp-validation-for="TradeTypeName" class="validation-message"></span>
                         </div>
+                    </div>
 
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Save
-                            </button>
-                            <a asp-action="Index" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="horizontal-container mt-20">
+                        <button type="submit" class="table-btn table-btn-success">Save</button>
+                        <a asp-action="Index" class="table-btn">Back</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    input, input:focus, input:active, input:hover,
+    select, select:focus, select:active, select:hover {
+        background-color: #1a1f2e !important;
+        border: 2px solid #8b6b4d !important;
+        color: #ffd700 !important;
+        font-family: 'Courier New', monospace !important;
+        font-size: 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+        outline: none !important;
+    }
+
+        select option {
+            background-color: #1a1f2e !important;
+            color: #ffd700 !important;
+        }
+
+        input:focus, select:focus {
+            border-color: #c0a88c !important;
+            background-color: #141229 !important;
+        }
+
+            input:focus:not(:placeholder-shown),
+            select:focus:not(:placeholder-shown) {
+                background-color: #0f1420 !important;
+                border-color: #ffd700 !important;
+            }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus,
+        select:-webkit-autofill:active {
+            background-color: #0f1420 !important;
+            border-color: #ffd700 !important;
+            -webkit-text-fill-color: #ffd700 !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0f1420 inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+</style>
 
 @section Scripts {
     @{

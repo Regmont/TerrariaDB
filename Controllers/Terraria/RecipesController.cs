@@ -169,6 +169,15 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            for (int i = 1; i < viewModel.Ingredients.Count; i++)
+            {
+                if (string.IsNullOrEmpty(viewModel.Ingredients[i].ItemId) || viewModel.Ingredients[i].Quantity <= 0)
+                {
+                    ModelState.Remove($"Ingredients[{i}].ItemId");
+                    ModelState.Remove($"Ingredients[{i}].Quantity");
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 var validIngredients = viewModel.Ingredients
@@ -221,155 +230,155 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        // GET: Recipes/Edit/5
-        [Authorize(Roles = "Admin")]
-        public IActionResult Edit(int id)
-        {
-            var recipe = _context.Recipe
-                .Include(r => r.ResultItem)
-                    .ThenInclude(i => i.GameObject)
-                .Include(r => r.CraftingStation)
-                .Include(r => r.RecipeItems)
-                    .ThenInclude(ri => ri.Item)
-                    .ThenInclude(i => i.GameObject)
-                .FirstOrDefault(r => r.RecipeId == id);
+        //// GET: Recipes/Edit/5
+        //[Authorize(Roles = "Admin")]
+        //public IActionResult Edit(int id)
+        //{
+        //    var recipe = _context.Recipe
+        //        .Include(r => r.ResultItem)
+        //            .ThenInclude(i => i.GameObject)
+        //        .Include(r => r.CraftingStation)
+        //        .Include(r => r.RecipeItems)
+        //            .ThenInclude(ri => ri.Item)
+        //            .ThenInclude(i => i.GameObject)
+        //        .FirstOrDefault(r => r.RecipeId == id);
 
-            if (recipe == null)
-            {
-                return NotFound();
-            }
+        //    if (recipe == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            var viewModel = new RecipeEditViewModel
-            {
-                RecipeId = recipe.RecipeId.ToString(),
-                ResultItemId = recipe.ResultItemId.ToString(),
-                ResultItemQuantity = recipe.ResultItemQuantity,
-                CraftingStationName = recipe.CraftingStationName
-            };
+        //    var viewModel = new RecipeEditViewModel
+        //    {
+        //        RecipeId = recipe.RecipeId.ToString(),
+        //        ResultItemId = recipe.ResultItemId.ToString(),
+        //        ResultItemQuantity = recipe.ResultItemQuantity,
+        //        CraftingStationName = recipe.CraftingStationName
+        //    };
 
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
 
-            viewModel.AvailableCraftingStations = _context.CraftingStation
-                .Select(cs => new SelectListItem
-                {
-                    Value = cs.CraftingStationName,
-                    Text = cs.CraftingStationName
-                })
-                .ToList();
+        //    viewModel.AvailableCraftingStations = _context.CraftingStation
+        //        .Select(cs => new SelectListItem
+        //        {
+        //            Value = cs.CraftingStationName,
+        //            Text = cs.CraftingStationName
+        //        })
+        //        .ToList();
 
-            for (int i = 0; i < 8; i++)
-            {
-                viewModel.Ingredients.Add(new RecipeEditIngredientViewModel());
-            }
+        //    for (int i = 0; i < 8; i++)
+        //    {
+        //        viewModel.Ingredients.Add(new RecipeEditIngredientViewModel());
+        //    }
 
-            var recipeItems = recipe.RecipeItems.ToList();
-            for (int i = 0; i < recipeItems.Count && i < 8; i++)
-            {
-                viewModel.Ingredients[i].ItemId = recipeItems[i].ItemId.ToString();
-                viewModel.Ingredients[i].Quantity = recipeItems[i].Quantity;
-            }
+        //    var recipeItems = recipe.RecipeItems.ToList();
+        //    for (int i = 0; i < recipeItems.Count && i < 8; i++)
+        //    {
+        //        viewModel.Ingredients[i].ItemId = recipeItems[i].ItemId.ToString();
+        //        viewModel.Ingredients[i].Quantity = recipeItems[i].Quantity;
+        //    }
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
-        // POST: Recipes/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(RecipeEditViewModel viewModel)
-        {
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
+        //// POST: Recipes/Edit/5
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> Edit(RecipeEditViewModel viewModel)
+        //{
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
 
-            viewModel.AvailableCraftingStations = _context.CraftingStation
-                .Select(cs => new SelectListItem
-                {
-                    Value = cs.CraftingStationName,
-                    Text = cs.CraftingStationName
-                })
-                .ToList();
+        //    viewModel.AvailableCraftingStations = _context.CraftingStation
+        //        .Select(cs => new SelectListItem
+        //        {
+        //            Value = cs.CraftingStationName,
+        //            Text = cs.CraftingStationName
+        //        })
+        //        .ToList();
 
-            if (ModelState.IsValid)
-            {
-                var recipe = await _context.Recipe
-                    .Include(r => r.RecipeItems)
-                    .FirstOrDefaultAsync(r => r.RecipeId == short.Parse(viewModel.RecipeId));
+        //    if (ModelState.IsValid)
+        //    {
+        //        var recipe = await _context.Recipe
+        //            .Include(r => r.RecipeItems)
+        //            .FirstOrDefaultAsync(r => r.RecipeId == short.Parse(viewModel.RecipeId));
 
-                if (recipe == null)
-                {
-                    return NotFound();
-                }
+        //        if (recipe == null)
+        //        {
+        //            return NotFound();
+        //        }
 
-                var ingredientIds = viewModel.Ingredients
-                    .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
-                    .Select(i => short.Parse(i.ItemId))
-                    .OrderBy(id => id)
-                    .ToList();
+        //        var ingredientIds = viewModel.Ingredients
+        //            .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
+        //            .Select(i => short.Parse(i.ItemId))
+        //            .OrderBy(id => id)
+        //            .ToList();
 
-                var duplicateExists = await _context.Recipe
-                    .Include(r => r.RecipeItems)
-                    .Where(r => r.RecipeId != recipe.RecipeId)
-                    .Where(r => r.ResultItemId == short.Parse(viewModel.ResultItemId))
-                    .Where(r => r.CraftingStationName == viewModel.CraftingStationName)
-                    .Where(r => r.RecipeItems.All(ri => ingredientIds.Contains(ri.ItemId)))
-                    .Where(r => ingredientIds.All(id => r.RecipeItems.Any(ri => ri.ItemId == id)))
-                    .AnyAsync();
+        //        var duplicateExists = await _context.Recipe
+        //            .Include(r => r.RecipeItems)
+        //            .Where(r => r.RecipeId != recipe.RecipeId)
+        //            .Where(r => r.ResultItemId == short.Parse(viewModel.ResultItemId))
+        //            .Where(r => r.CraftingStationName == viewModel.CraftingStationName)
+        //            .Where(r => r.RecipeItems.All(ri => ingredientIds.Contains(ri.ItemId)))
+        //            .Where(r => ingredientIds.All(id => r.RecipeItems.Any(ri => ri.ItemId == id)))
+        //            .AnyAsync();
 
-                if (duplicateExists)
-                {
-                    ModelState.AddModelError("", "A recipe with these items already exists");
-                    return View(viewModel);
-                }
+        //        if (duplicateExists)
+        //        {
+        //            ModelState.AddModelError("", "A recipe with these items already exists");
+        //            return View(viewModel);
+        //        }
 
-                recipe.ResultItemId = short.Parse(viewModel.ResultItemId);
-                recipe.ResultItemQuantity = viewModel.ResultItemQuantity;
-                recipe.CraftingStationName = viewModel.CraftingStationName;
+        //        recipe.ResultItemId = short.Parse(viewModel.ResultItemId);
+        //        recipe.ResultItemQuantity = viewModel.ResultItemQuantity;
+        //        recipe.CraftingStationName = viewModel.CraftingStationName;
 
-                _context.RecipeItems.RemoveRange(recipe.RecipeItems);
+        //        _context.RecipeItems.RemoveRange(recipe.RecipeItems);
 
-                foreach (var ingredient in viewModel.Ingredients.Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0))
-                {
-                    var recipeItem = new RecipeItems
-                    {
-                        RecipeId = recipe.RecipeId,
-                        ItemId = short.Parse(ingredient.ItemId),
-                        Quantity = (short)ingredient.Quantity
-                    };
-                    _context.RecipeItems.Add(recipeItem);
-                }
+        //        foreach (var ingredient in viewModel.Ingredients.Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0))
+        //        {
+        //            var recipeItem = new RecipeItems
+        //            {
+        //                RecipeId = recipe.RecipeId,
+        //                ItemId = short.Parse(ingredient.ItemId),
+        //                Quantity = (short)ingredient.Quantity
+        //            };
+        //            _context.RecipeItems.Add(recipeItem);
+        //        }
 
-                try
-                {
-                    _context.Update(recipe);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!RecipeExists(recipe.RecipeId))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(viewModel);
-        }
+        //        try
+        //        {
+        //            _context.Update(recipe);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch (DbUpdateConcurrencyException)
+        //        {
+        //            if (!RecipeExists(recipe.RecipeId))
+        //            {
+        //                return NotFound();
+        //            }
+        //            throw;
+        //        }
+        //        return RedirectToAction(nameof(Index));
+        //    }
+        //    return View(viewModel);
+        //}
 
         // GET: Recipes/Delete/5
         [Authorize(Roles = "Admin")]

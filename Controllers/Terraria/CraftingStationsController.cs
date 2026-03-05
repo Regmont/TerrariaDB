@@ -131,114 +131,114 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        // GET: CraftingStations/Edit/5
-        [Authorize(Roles = "Admin")]
-        public IActionResult Edit(string id)
-        {
-            var craftingStation = _context.CraftingStation
-                .Include(cs => cs.Items)
-                    .ThenInclude(i => i.GameObject)
-                .FirstOrDefault(cs => cs.CraftingStationName == id);
+        //// GET: CraftingStations/Edit/5
+        //[Authorize(Roles = "Admin")]
+        //public IActionResult Edit(string id)
+        //{
+        //    var craftingStation = _context.CraftingStation
+        //        .Include(cs => cs.Items)
+        //            .ThenInclude(i => i.GameObject)
+        //        .FirstOrDefault(cs => cs.CraftingStationName == id);
 
-            if (craftingStation == null)
-            {
-                return NotFound();
-            }
+        //    if (craftingStation == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            var viewModel = new CraftingStationEditViewModel
-            {
-                OriginalCraftingStationName = craftingStation.CraftingStationName,
-                CraftingStationName = craftingStation.CraftingStationName
-            };
+        //    var viewModel = new CraftingStationEditViewModel
+        //    {
+        //        OriginalCraftingStationName = craftingStation.CraftingStationName,
+        //        CraftingStationName = craftingStation.CraftingStationName
+        //    };
 
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName,
-                    Selected = craftingStation.Items.Any(ci => ci.ItemId == i.ItemId)
-                })
-                .ToList();
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName,
+        //            Selected = craftingStation.Items.Any(ci => ci.ItemId == i.ItemId)
+        //        })
+        //        .ToList();
 
-            viewModel.SelectedItemId = craftingStation.Items
-                .FirstOrDefault()?.ItemId.ToString() ?? string.Empty;
+        //    viewModel.SelectedItemId = craftingStation.Items
+        //        .FirstOrDefault()?.ItemId.ToString() ?? string.Empty;
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
-        // POST: CraftingStations/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(CraftingStationEditViewModel viewModel)
-        {
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName,
-                    Selected = i.ItemId.ToString() == viewModel.SelectedItemId
-                })
-                .ToList();
+        //// POST: CraftingStations/Edit/5
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> Edit(CraftingStationEditViewModel viewModel)
+        //{
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName,
+        //            Selected = i.ItemId.ToString() == viewModel.SelectedItemId
+        //        })
+        //        .ToList();
 
-            if (ModelState.IsValid)
-            {
-                var craftingStation = await _context.CraftingStation
-                    .Include(cs => cs.Items)
-                    .FirstOrDefaultAsync(cs => cs.CraftingStationName == viewModel.OriginalCraftingStationName);
+        //    if (ModelState.IsValid)
+        //    {
+        //        var craftingStation = await _context.CraftingStation
+        //            .Include(cs => cs.Items)
+        //            .FirstOrDefaultAsync(cs => cs.CraftingStationName == viewModel.OriginalCraftingStationName);
 
-                if (craftingStation == null)
-                {
-                    return NotFound();
-                }
+        //        if (craftingStation == null)
+        //        {
+        //            return NotFound();
+        //        }
 
-                if (viewModel.OriginalCraftingStationName != viewModel.CraftingStationName &&
-                    await _context.CraftingStation.AnyAsync(cs => cs.CraftingStationName == viewModel.CraftingStationName))
-                {
-                    ModelState.AddModelError("CraftingStationName", "A crafting station with this name already exists");
-                    return View(viewModel);
-                }
+        //        if (viewModel.OriginalCraftingStationName != viewModel.CraftingStationName &&
+        //            await _context.CraftingStation.AnyAsync(cs => cs.CraftingStationName == viewModel.CraftingStationName))
+        //        {
+        //            ModelState.AddModelError("CraftingStationName", "A crafting station with this name already exists");
+        //            return View(viewModel);
+        //        }
 
-                var oldItems = craftingStation.Items.ToList();
-                foreach (var item in oldItems)
-                {
-                    item.CraftingStationName = null;
-                    _context.Update(item);
-                }
+        //        var oldItems = craftingStation.Items.ToList();
+        //        foreach (var item in oldItems)
+        //        {
+        //            item.CraftingStationName = null;
+        //            _context.Update(item);
+        //        }
 
-                craftingStation.CraftingStationName = viewModel.CraftingStationName;
+        //        craftingStation.CraftingStationName = viewModel.CraftingStationName;
 
-                if (!string.IsNullOrEmpty(viewModel.SelectedItemId))
-                {
-                    var newItem = await _context.Item.FindAsync(short.Parse(viewModel.SelectedItemId));
-                    if (newItem != null)
-                    {
-                        newItem.CraftingStationName = craftingStation.CraftingStationName;
-                        _context.Update(newItem);
-                    }
-                }
+        //        if (!string.IsNullOrEmpty(viewModel.SelectedItemId))
+        //        {
+        //            var newItem = await _context.Item.FindAsync(short.Parse(viewModel.SelectedItemId));
+        //            if (newItem != null)
+        //            {
+        //                newItem.CraftingStationName = craftingStation.CraftingStationName;
+        //                _context.Update(newItem);
+        //            }
+        //        }
 
-                try
-                {
-                    _context.Update(craftingStation);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!CraftingStationExists(viewModel.OriginalCraftingStationName))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(viewModel);
-        }
+        //        try
+        //        {
+        //            _context.Update(craftingStation);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch (DbUpdateConcurrencyException)
+        //        {
+        //            if (!CraftingStationExists(viewModel.OriginalCraftingStationName))
+        //            {
+        //                return NotFound();
+        //            }
+        //            throw;
+        //        }
+        //        return RedirectToAction(nameof(Index));
+        //    }
+        //    return View(viewModel);
+        //}
 
         // GET: CraftingStations/Delete/5
         [Authorize(Roles = "Admin")]

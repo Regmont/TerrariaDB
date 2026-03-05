@@ -4,128 +4,116 @@
     ViewData["Title"] = "Entities";
 }
 
-<div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-                <i class="bi bi-grid-3x3-gap-fill"></i> All Entities
-            </h4>
-            <div>
-                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-house"></i> Home
-                </a>
+<div class="terraria-page">
+    <div class="terraria-page-wide">
+        <div class="table-page-card">
+            <div class="table-page-header">
+                <h4>All Entities</h4>
+                <div class="horizontal-container">
+                    <a asp-action="Index" asp-controller="Home" class="table-btn table-btn-sm">
+                        Home
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="card-body">
-            @if (!Model.Entities.Any())
-            {
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    No entities found.
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Entity</th>
-                                <th>Type</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var entity in Model.Entities)
-                            {
+            <div class="table-page-body">
+                @if (!Model.Entities.Any())
+                {
+                    <div class="terraria-alert terraria-alert-info">
+                        No entities found.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table-page">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <img src="@entity.Sprite" alt="@entity.Name"
-                                                 style="width: 48px; height: 48px; object-fit: contain;"
-                                                 class="border rounded bg-light p-1" />
-                                            <div>
-                                                <span class="fw-bold d-block">@entity.Name</span>
-                                                <small class="text-muted">Game ID: @entity.Id</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @{
-                                            string badgeClass = entity.Type switch
-                                            {
-                                                "BossPart" => "bg-danger",
-                                                "Enemy" => "bg-warning text-dark",
-                                                "TownNpc" => "bg-success",
-                                                _ => "bg-secondary"
-                                            };
-                                        }
-                                        <span class="badge @badgeClass">@entity.Type</span>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="btn-group btn-group-sm">
-                                            @if (entity.Type == "BossPart")
-                                            {
-                                                <a asp-controller="Boss" asp-action="Details" asp-route-id="@entity.TypeId"
-                                                   class="btn btn-info text-white" title="Details">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                @if (User.IsInRole("Admin"))
-                                                {
-                                                    <a asp-controller="Boss" asp-action="Edit" asp-route-id="@entity.TypeId"
-                                                       class="btn btn-warning" title="Edit">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                    <a asp-controller="Boss" asp-action="Delete" asp-route-id="@entity.TypeId"
-                                                       class="btn btn-danger" title="Delete">
-                                                        <i class="bi bi-trash"></i>
-                                                    </a>
-                                                }
-                                            }
-                                            else if (entity.Type == "Enemy")
-                                            {
-                                                <a asp-controller="Enemy" asp-action="Details" asp-route-id="@entity.TypeId"
-                                                   class="btn btn-info text-white" title="Details">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                @if (User.IsInRole("Admin"))
-                                                {
-                                                    <a asp-controller="Enemy" asp-action="Edit" asp-route-id="@entity.TypeId"
-                                                       class="btn btn-warning" title="Edit">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                    <a asp-controller="Enemy" asp-action="Delete" asp-route-id="@entity.TypeId"
-                                                       class="btn btn-danger" title="Delete">
-                                                        <i class="bi bi-trash"></i>
-                                                    </a>
-                                                }
-                                            }
-                                            else if (entity.Type == "TownNpc")
-                                            {
-                                                <a asp-controller="TownNpc" asp-action="Details" asp-route-id="@entity.TypeId"
-                                                   class="btn btn-info text-white" title="Details">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                @if (User.IsInRole("Admin"))
-                                                {
-                                                    <a asp-controller="TownNpc" asp-action="Edit" asp-route-id="@entity.TypeId"
-                                                       class="btn btn-warning" title="Edit">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                    <a asp-controller="TownNpc" asp-action="Delete" asp-route-id="@entity.TypeId"
-                                                       class="btn btn-danger" title="Delete">
-                                                        <i class="bi bi-trash"></i>
-                                                    </a>
-                                                }
-                                            }
-                                        </div>
-                                    </td>
+                                    <th>Entity</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
+                            </thead>
+                            <tbody>
+                                @foreach (var entity in Model.Entities)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="table-cell">
+                                                <img src="@entity.Sprite" alt="@entity.Name" class="table-icon" />
+                                                <div>
+                                                    <div class="table-title">@entity.Name</div>
+                                                    <small class="table-subtitle">Game ID: @entity.Id</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @{
+                                                string badgeClass = entity.Type switch
+                                                {
+                                                    "BossPart" => "table-btn-info",
+                                                    "Enemy" => "table-btn-warning",
+                                                    "TownNpc" => "table-btn-success",
+                                                    _ => "table-btn"
+                                                };
+                                            }
+                                            <span class="table-btn table-btn-sm entity-badge">@entity.Type</span>
+                                        </td>
+                                        <td>
+                                            <div class="table-actions">
+                                                @if (entity.Type == "BossPart")
+                                                {
+                                                    <a asp-controller="Boss" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                        Details
+                                                    </a>
+                                                    @if (User.IsInRole("Admin"))
+                                                    {
+                                                        <a asp-controller="Boss" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                            Edit
+                                                        </a>
+                                                        <a asp-controller="Boss" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                            Delete
+                                                        </a>
+                                                    }
+                                                }
+                                                else if (entity.Type == "Enemy")
+                                                {
+                                                    <a asp-controller="Enemy" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                        Details
+                                                    </a>
+                                                    @if (User.IsInRole("Admin"))
+                                                    {
+                                                        <a asp-controller="Enemy" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                            Edit
+                                                        </a>
+                                                        <a asp-controller="Enemy" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                            Delete
+                                                        </a>
+                                                    }
+                                                }
+                                                else if (entity.Type == "TownNpc")
+                                                {
+                                                    <a asp-controller="TownNpc" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                        Details
+                                                    </a>
+                                                    @if (User.IsInRole("Admin"))
+                                                    {
+                                                        <a asp-controller="TownNpc" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                            Edit
+                                                        </a>
+                                                        <a asp-controller="TownNpc" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                            Delete
+                                                        </a>
+                                                    }
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>

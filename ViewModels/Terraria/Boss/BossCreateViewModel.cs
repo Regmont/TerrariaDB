@@ -32,7 +32,7 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
         public string PartName { get; set; } = string.Empty;
 
         [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
 
         [Range(1, 50, ErrorMessage = "Quantity must be between 1 and 50")]
         public int Quantity { get; set; }

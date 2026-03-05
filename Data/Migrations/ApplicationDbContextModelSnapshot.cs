@@ -467,7 +467,10 @@ namespace TerrariaDB.Data.Migrations
             modelBuilder.Entity("TerrariaDB.Models.Terraria.Item", b =>
                 {
                     b.Property<short>("ItemId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("SMALLINT");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("ItemId"));
 
                     b.Property<int>("BasePrice")
                         .HasColumnType("INT");

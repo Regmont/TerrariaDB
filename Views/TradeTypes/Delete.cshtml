@@ -4,45 +4,71 @@
     ViewData["Title"] = "Delete Trade Type";
 }
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow border-danger">
-                <div class="card-header bg-danger text-white">
-                    <h4 class="mb-0">Delete Trade Type</h4>
+<div class="terraria-page">
+    <div class="terraria-page-wide">
+        <div class="table-page-card">
+            <div class="table-page-header">
+                <h4>Delete Trade Type</h4>
+                <div class="horizontal-container">
+                    <a asp-action="Index" asp-controller="Home" class="table-btn table-btn-sm">
+                        Home
+                    </a>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Are you sure you want to delete this trade type?
-                    </div>
+            </div>
+            <div class="table-page-body">
+                <form asp-action="Delete" method="post">
+                    <div asp-validation-summary="ModelOnly" class="terraria-alert terraria-alert-info" role="alert"></div>
 
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Trade Type Name</label>
-                        <div class="form-control bg-light">@Model.TradeTypeName</div>
+                    <input type="hidden" asp-for="TradeTypeName" />
+                    <input type="hidden" asp-for="HasRelatedTrades" />
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <div class="label-text">Trade Type Name</div>
+                            <div style="color: #f0e0c0; font-family: 'Courier New', monospace; font-size: 18px; padding: 8px 0;">
+                                @Model.TradeTypeName
+                            </div>
+                        </div>
                     </div>
 
                     @if (Model.HasRelatedTrades)
                     {
-                        <div class="alert alert-danger">
-                            <i class="bi bi-x-circle"></i>
+                        <div class="terraria-alert" style="border-color: #8b3a3a; background: #3a1e1e; color: #ff6b6b;">
+                            <i class="bi bi-exclamation-triangle"></i>
                             <strong>Cannot delete</strong> - This trade type is used by existing trades!
                         </div>
                     }
 
-                    <form asp-action="Delete" method="post">
-                        <input type="hidden" asp-for="TradeTypeName" />
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-danger" disabled="@Model.HasRelatedTrades">
-                                <i class="bi bi-trash"></i> Confirm Delete
-                            </button>
-                            <a asp-action="Index" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Back
-                            </a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="horizontal-container mt-20">
+                        <button type="submit" class="table-btn @(Model.HasRelatedTrades ? "table-btn-danger" : "table-btn-success")" @(Model.HasRelatedTrades ? "disabled" : "")>
+                            Confirm Delete
+                        </button>
+                        <a asp-action="Index" class="table-btn">Back</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    button:disabled, .table-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .bi {
+        margin-right: 5px;
+    }
+
+    .terraria-alert strong {
+        color: #ffd700;
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

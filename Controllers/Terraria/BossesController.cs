@@ -232,6 +232,88 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            for (int i = 0; i < viewModel.BossDrops.Count; i++)
+            {
+                var drop = viewModel.BossDrops[i];
+
+                if (string.IsNullOrEmpty(drop.ItemId) || drop.Quantity <= 0)
+                {
+                    ModelState.Remove($"BossDrops[{i}].ItemId");
+                    ModelState.Remove($"BossDrops[{i}].Quantity");
+                }
+            }
+
+            for (int i = 0; i < viewModel.BossParts.Count; i++)
+            {
+                if (string.IsNullOrEmpty(viewModel.BossParts[i].PartName))
+                {
+                    ModelState.Remove($"BossParts[{i}].PartName");
+                }
+            }
+
+            if (string.IsNullOrEmpty(viewModel.BossParts[0].Stages[1].Sprite))
+            {
+                ModelState.Remove($"BossParts[0].Stages[1].Sprite");
+                ModelState.Remove($"BossParts[0].Stages[1].EntityId");
+            }
+
+            for (int i = 1; i < viewModel.BossParts.Count; i++)
+            {
+                for (int j = 0; j < viewModel.BossParts[i].Stages.Count; j++)
+                {
+                    if (string.IsNullOrEmpty(viewModel.BossParts[i].Stages[j].Sprite))
+                    {
+                        ModelState.Remove($"BossParts[{i}].Stages[{j}].Sprite");
+                    }
+                }
+            }
+
+            for (int i = 0; i < viewModel.BossParts.Count; i++)
+            {
+                for (int j = 0; j < viewModel.BossParts[i].Stages.Count; j++)
+                {
+                    for (int k = 0; k < viewModel.BossParts[i].Stages[j].Drops.Count; k++)
+                    {
+                        var drop = viewModel.BossParts[i].Stages[j].Drops[k];
+
+                        if (string.IsNullOrEmpty(drop.ItemId) || drop.Quantity <= 0)
+                        {
+                            ModelState.Remove($"BossParts[{i}].Stages[{j}].Drops[{k}].ItemId");
+                            ModelState.Remove($"BossParts[{i}].Stages[{j}].Drops[{k}].Quantity");
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < viewModel.BossParts.Count; i++)
+            {
+                for (int j = 0; j < viewModel.BossParts[i].Stages.Count; j++)
+                {
+                    for (int k = 0; k < viewModel.BossParts[i].Stages[j].SpawnedEnemies.Count; k++)
+                    {
+                        var enemy = viewModel.BossParts[i].Stages[j].SpawnedEnemies[k];
+
+                        if (string.IsNullOrEmpty(enemy.EnemyId) || enemy.Quantity <= 0)
+                        {
+                            ModelState.Remove($"BossParts[{i}].Stages[{j}].SpawnedEnemies[{k}].EnemyId");
+                            ModelState.Remove($"BossParts[{i}].Stages[{j}].SpawnedEnemies[{k}].Quantity");
+                        }
+                    }
+                }
+            }
+
+            foreach (var modelStateKey in ModelState.Keys)
+            {
+                var modelStateVal = ModelState[modelStateKey];
+                if (modelStateVal?.Errors.Count > 0)
+                {
+                    foreach (var error in modelStateVal.Errors)
+                    {
+                        Console.WriteLine($"Key: {modelStateKey}, Error: {error.ErrorMessage}");
+                    }
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 if (string.IsNullOrEmpty(viewModel.BossName))
@@ -390,8 +472,6 @@ namespace TerrariaDB.Controllers.Terraria
                         .Where(s => !string.IsNullOrEmpty(s.Sprite))
                         .ToList();
 
-                    GameObject? previousGameObject = null;
-
                     for (int i = 0; i < filledStages.Count; i++)
                     {
                         var stage = filledStages[i];
@@ -402,7 +482,7 @@ namespace TerrariaDB.Controllers.Terraria
                             GameObjectName = gameObjectName,
                             Description = i == 0 ? part.Description : null,
                             Sprite = stage.Sprite,
-                            TransformName = previousGameObject?.GameObjectName
+                            TransformName = i < filledStages.Count - 1 ? $"{part.PartName}_{i + 2}" : null
                         };
 
                         _context.GameObject.Add(gameObject);
@@ -428,24 +508,21 @@ namespace TerrariaDB.Controllers.Terraria
                         var bossPart = new BossPart
                         {
                             BossName = boss.BossName,
-                            HostileEntityId = hostileEntity.HostileEntityId,
+                            HostileEntity = hostileEntity,
                             Quantity = (short)part.Quantity
                         };
 
                         _context.BossPart.Add(bossPart);
 
-                        if (i == 0)
+                        foreach (var enemy in stage.SpawnedEnemies.Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0))
                         {
-                            foreach (var enemy in stage.SpawnedEnemies.Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0))
+                            var bossPartEnemy = new BossPartEnemies
                             {
-                                var bossPartEnemy = new BossPartEnemies
-                                {
-                                    BossPartId = bossPart.BossPartId,
-                                    EnemyId = short.Parse(enemy.EnemyId),
-                                    Quantity = (short)enemy.Quantity
-                                };
-                                _context.BossPartEnemies.Add(bossPartEnemy);
-                            }
+                                BossPart = bossPart,
+                                EnemyId = short.Parse(enemy.EnemyId),
+                                Quantity = (short)enemy.Quantity
+                            };
+                            _context.BossPartEnemies.Add(bossPartEnemy);
                         }
 
                         foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
@@ -458,8 +535,6 @@ namespace TerrariaDB.Controllers.Terraria
                             };
                             _context.EntityDrop.Add(entityDrop);
                         }
-
-                        previousGameObject = gameObject;
                     }
                 }
 
@@ -470,564 +545,564 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        // GET: Bosses/Edit/5
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(string name)
-        {
-            var boss = await _context.Boss
-                .Include(b => b.BossParts)
-                    .ThenInclude(bp => bp.HostileEntity)
-                        .ThenInclude(he => he.Entity)
-                            .ThenInclude(e => e.GameObject)
-                .Include(b => b.BossParts)
-                    .ThenInclude(bp => bp.HostileEntity)
-                        .ThenInclude(he => he.Entity)
-                            .ThenInclude(e => e.EntityDrops)
-                                .ThenInclude(ed => ed.Item)
-                                    .ThenInclude(i => i.GameObject)
-                .Include(b => b.BossParts)
-                    .ThenInclude(bp => bp.BossPartEnemies)
-                        .ThenInclude(bpe => bpe.Enemy)
-                            .ThenInclude(e => e.HostileEntity)
-                                .ThenInclude(he => he.Entity)
-                                    .ThenInclude(e => e.GameObject)
-                .Include(b => b.BossDrops)
-                    .ThenInclude(bd => bd.Item)
-                        .ThenInclude(i => i.GameObject)
-                .FirstOrDefaultAsync(b => b.BossName == name);
-
-            if (boss == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = new BossEditViewModel
-            {
-                OriginalBossName = boss.BossName,
-                BossName = boss.BossName,
-                SummonItemId = boss.SummonItemId?.ToString()
-            };
-
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
-
-            viewModel.AvailableEnemies = _context.Enemy
-                .Include(e => e.HostileEntity)
-                    .ThenInclude(he => he.Entity)
-                        .ThenInclude(e => e.GameObject)
-                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
-                .Select(e => new SelectListItem
-                {
-                    Value = e.EnemyId.ToString(),
-                    Text = e.HostileEntity.Entity.GameObject.GameObjectName
-                })
-                .ToList();
-
-            var bossDrops = boss.BossDrops.ToList();
-            for (int i = 0; i < 15; i++)
-            {
-                var drop = new BossDropEditViewModel();
-                if (i < bossDrops.Count)
-                {
-                    drop.ItemId = bossDrops[i].ItemId.ToString();
-                    drop.Quantity = bossDrops[i].Quantity;
-                }
-                viewModel.BossDrops.Add(drop);
-            }
-
-            var existingPartsData = new List<(
-                BossPart part,
-                List<(GameObject go, Entity entity, HostileEntity hostile, List<BossPartEnemies> enemies, List<EntityDrop> drops)>
-            )>();
-
-            foreach (var part in boss.BossParts)
-            {
-                var stagesData = new List<(GameObject go, Entity entity, HostileEntity hostile, List<BossPartEnemies> enemies, List<EntityDrop> drops)>();
-                var current = part.HostileEntity.Entity.GameObject;
-
-                while (current != null)
-                {
-                    var entity = await _context.Entity
-                        .Include(e => e.EntityDrops)
-                        .FirstOrDefaultAsync(e => e.GameObjectName == current.GameObjectName);
-
-                    var enemies = await _context.BossPartEnemies
-                        .Where(bpe => bpe.BossPartId == part.BossPartId)
-                        .ToListAsync();
-
-                    if (entity != null)
-                    {
-                        stagesData.Add((current, entity, part.HostileEntity, enemies, entity.EntityDrops.ToList()));
-                    }
-
-                    current = await _context.GameObject
-                        .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
-                }
-
-                existingPartsData.Add((part, stagesData));
-            }
-
-            var bossParts = boss.BossParts.ToList();
-            for (int i = 0; i < 5; i++)
-            {
-                var part = new BossPartEditViewModel();
-
-                if (i < bossParts.Count)
-                {
-                    var currentPart = bossParts[i];
-                    part.PartName = currentPart.HostileEntity.Entity.GameObject.GameObjectName;
-                    part.Description = currentPart.HostileEntity.Entity.GameObject.Description ?? string.Empty;
-                    part.Quantity = currentPart.Quantity;
-
-                    var stages = currentPart.HostileEntity.Entity.GameObject.GetAllStages().ToList();
-                    for (int j = 0; j < 2; j++)
-                    {
-                        var stage = new BossStageEditViewModel();
-
-                        if (j < stages.Count)
-                        {
-                            var currentStage = stages[j];
-                            var entity = await _context.Entity
-                                .FirstOrDefaultAsync(e => e.GameObjectName == currentStage.GameObjectName);
-                            var enemies = await _context.BossPartEnemies
-                                .Include(bpe => bpe.Enemy)
-                                    .ThenInclude(e => e.HostileEntity)
-                                        .ThenInclude(he => he.Entity)
-                                            .ThenInclude(e => e.GameObject)
-                                .Where(bpe => bpe.BossPartId == currentPart.BossPartId)
-                                .ToListAsync();
-
-                            stage.Sprite = currentStage.Sprite;
-                            stage.Hp = entity?.Hp ?? 0;
-                            stage.Defense = entity?.Defense ?? 0;
-                            stage.EntityId = entity?.EntityId ?? 0;
-                            stage.ContactDamage = currentPart.HostileEntity.ContactDamage;
-
-                            var spawnedEnemies = enemies.ToList();
-                            for (int k = 0; k < 3; k++)
-                            {
-                                var enemy = new BossStageEnemyEditViewModel();
-                                if (k < spawnedEnemies.Count)
-                                {
-                                    enemy.EnemyId = spawnedEnemies[k].EnemyId.ToString();
-                                    enemy.Quantity = spawnedEnemies[k].Quantity;
-                                }
-                                stage.SpawnedEnemies.Add(enemy);
-                            }
-
-                            var drops = entity?.EntityDrops.ToList() ?? new List<EntityDrop>();
-                            for (int k = 0; k < 3; k++)
-                            {
-                                var drop = new BossStageDropEditViewModel();
-                                if (k < drops.Count)
-                                {
-                                    drop.ItemId = drops[k].ItemId.ToString();
-                                    drop.Quantity = drops[k].Quantity;
-                                }
-                                stage.Drops.Add(drop);
-                            }
-                        }
-                        else
-                        {
-                            for (int k = 0; k < 3; k++)
-                            {
-                                stage.SpawnedEnemies.Add(new BossStageEnemyEditViewModel());
-                                stage.Drops.Add(new BossStageDropEditViewModel());
-                            }
-                        }
-
-                        part.Stages.Add(stage);
-                    }
-                }
-                else
-                {
-                    for (int j = 0; j < 2; j++)
-                    {
-                        var stage = new BossStageEditViewModel();
-                        for (int k = 0; k < 3; k++)
-                        {
-                            stage.SpawnedEnemies.Add(new BossStageEnemyEditViewModel());
-                            stage.Drops.Add(new BossStageDropEditViewModel());
-                        }
-                        part.Stages.Add(stage);
-                    }
-                }
-
-                viewModel.BossParts.Add(part);
-            }
-
-            return View(viewModel);
-        }
-
-        // POST: Bosses/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(BossEditViewModel viewModel)
-        {
-            viewModel.AvailableItems = _context.Item
-                .Include(i => i.GameObject)
-                .Where(i => i.GameObject.TransformedFrom == null)
-                .Select(i => new SelectListItem
-                {
-                    Value = i.ItemId.ToString(),
-                    Text = i.GameObject.GameObjectName
-                })
-                .ToList();
-
-            viewModel.AvailableEnemies = _context.Enemy
-                .Include(e => e.HostileEntity)
-                    .ThenInclude(he => he.Entity)
-                        .ThenInclude(e => e.GameObject)
-                .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
-                .Select(e => new SelectListItem
-                {
-                    Value = e.EnemyId.ToString(),
-                    Text = e.HostileEntity.Entity.GameObject.GameObjectName
-                })
-                .ToList();
-
-            if (ModelState.IsValid)
-            {
-                var originalBoss = await _context.Boss
-                    .Include(b => b.BossDrops)
-                    .Include(b => b.BossParts)
-                        .ThenInclude(bp => bp.HostileEntity)
-                            .ThenInclude(he => he.Entity)
-                                .ThenInclude(e => e.GameObject)
-                    .Include(b => b.BossParts)
-                        .ThenInclude(bp => bp.HostileEntity)
-                            .ThenInclude(he => he.Entity)
-                                .ThenInclude(e => e.EntityDrops)
-                    .Include(b => b.BossParts)
-                        .ThenInclude(bp => bp.BossPartEnemies)
-                    .FirstOrDefaultAsync(b => b.BossName == viewModel.OriginalBossName);
-
-                if (originalBoss == null)
-                {
-                    return NotFound();
-                }
-
-                if (string.IsNullOrEmpty(viewModel.BossName))
-                {
-                    ModelState.AddModelError("BossName", "Boss name is required");
-                    return View(viewModel);
-                }
-
-                if (viewModel.BossName.Length > 50)
-                {
-                    ModelState.AddModelError("BossName", "Boss name cannot exceed 50 characters");
-                    return View(viewModel);
-                }
-
-                if (viewModel.OriginalBossName != viewModel.BossName &&
-                    await _context.Boss.AnyAsync(b => b.BossName == viewModel.BossName))
-                {
-                    ModelState.AddModelError("BossName", "A boss with this name already exists");
-                    return View(viewModel);
-                }
-
-                var filledParts = viewModel.BossParts
-                    .Where(p => !string.IsNullOrEmpty(p.PartName))
-                    .ToList();
-
-                if (!filledParts.Any())
-                {
-                    ModelState.AddModelError("", "At least one boss part must be filled");
-                    return View(viewModel);
-                }
-
-                var partNames = filledParts.Select(p => p.PartName).ToList();
-                if (partNames.Count != partNames.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Part names must be unique");
-                    return View(viewModel);
-                }
-
-                var allGameObjectNames = new List<string>();
-                var allSprites = new List<string>();
-                var allEntityIds = new List<short>();
-
-                foreach (var part in filledParts)
-                {
-                    var filledStages = part.Stages
-                        .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                        .ToList();
-
-                    if (!filledStages.Any())
-                    {
-                        ModelState.AddModelError("", $"Part '{part.PartName}' must have at least one stage");
-                        return View(viewModel);
-                    }
-
-                    foreach (var stage in filledStages)
-                    {
-                        if (stage.Hp < 0 || stage.Hp > 150000)
-                        {
-                            ModelState.AddModelError("", "HP must be between 0 and 150000");
-                            return View(viewModel);
-                        }
-                        if (stage.Defense < 0 || stage.Defense > 100)
-                        {
-                            ModelState.AddModelError("", "Defense must be between 0 and 100");
-                            return View(viewModel);
-                        }
-                        if (stage.ContactDamage < 0 || stage.ContactDamage > 500)
-                        {
-                            ModelState.AddModelError("", "Contact damage must be between 0 and 500");
-                            return View(viewModel);
-                        }
-                        if (stage.EntityId < -500 || stage.EntityId > 1000)
-                        {
-                            ModelState.AddModelError("", "Entity ID must be between -500 and 1000");
-                            return View(viewModel);
-                        }
-                    }
-
-                    for (int i = 0; i < filledStages.Count; i++)
-                    {
-                        var stage = filledStages[i];
-                        var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
-
-                        allGameObjectNames.Add(gameObjectName);
-                        allSprites.Add(stage.Sprite);
-                        allEntityIds.Add(stage.EntityId);
-                    }
-                }
-
-                if (allGameObjectNames.Count != allGameObjectNames.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Game object names must be unique across all parts and stages");
-                    return View(viewModel);
-                }
-
-                if (allSprites.Count != allSprites.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Sprites must be unique across all parts and stages");
-                    return View(viewModel);
-                }
-
-                if (allEntityIds.Count != allEntityIds.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Entity IDs must be unique across all parts and stages");
-                    return View(viewModel);
-                }
-
-                var existingGameObjects = new List<GameObject>();
-                var existingEntities = new List<Entity>();
-                var existingHostileEntities = new List<HostileEntity>();
-                var existingBossParts = new List<BossPart>();
-                var existingBossPartEnemies = new List<BossPartEnemies>();
-                var existingEntityDrops = new List<EntityDrop>();
-
-                foreach (var part in originalBoss.BossParts)
-                {
-                    existingBossParts.Add(part);
-                    existingHostileEntities.Add(part.HostileEntity);
-                    existingBossPartEnemies.AddRange(part.BossPartEnemies);
-
-                    var current = part.HostileEntity.Entity.GameObject;
-                    while (current != null && !existingGameObjects.Contains(current))
-                    {
-                        existingGameObjects.Add(current);
-                        var entity = await _context.Entity
-                            .Include(e => e.EntityDrops)
-                            .FirstOrDefaultAsync(e => e.GameObjectName == current.GameObjectName);
-                        if (entity != null)
-                        {
-                            existingEntities.Add(entity);
-                            existingEntityDrops.AddRange(entity.EntityDrops);
-                        }
-                        current = await _context.GameObject
-                            .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
-                    }
-                }
-
-                var existingEntityIds = existingEntities.Select(e => e.EntityId).ToList();
-                foreach (var entityId in allEntityIds)
-                {
-                    if (!existingEntityIds.Contains(entityId) &&
-                        await _context.Entity.AnyAsync(e => e.EntityId == entityId))
-                    {
-                        ModelState.AddModelError("", $"Entity ID {entityId} is already in use");
-                        return View(viewModel);
-                    }
-                }
-
-                var existingNames = existingGameObjects.Select(go => go.GameObjectName).ToList();
-                foreach (var name in allGameObjectNames)
-                {
-                    if (!existingNames.Contains(name) &&
-                        await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
-                    {
-                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var existingSprites = existingGameObjects.Select(go => go.Sprite).ToList();
-                foreach (var sprite in allSprites)
-                {
-                    if (!existingSprites.Contains(sprite) &&
-                        await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                _context.BossDrop.RemoveRange(originalBoss.BossDrops);
-
-                originalBoss.BossName = viewModel.BossName;
-                originalBoss.SummonItemId = !string.IsNullOrEmpty(viewModel.SummonItemId) ? short.Parse(viewModel.SummonItemId) : null;
-
-                foreach (var drop in viewModel.BossDrops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
-                {
-                    var bossDrop = new BossDrop
-                    {
-                        BossName = originalBoss.BossName,
-                        ItemId = short.Parse(drop.ItemId),
-                        Quantity = (short)drop.Quantity
-                    };
-                    _context.BossDrop.Add(bossDrop);
-                }
-
-                var stageIndex = 0;
-
-                foreach (var part in filledParts)
-                {
-                    var filledStages = part.Stages
-                        .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                        .ToList();
-
-                    GameObject? previousGameObject = null;
-
-                    for (int i = 0; i < filledStages.Count; i++)
-                    {
-                        var stage = filledStages[i];
-                        var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
-
-                        GameObject gameObject;
-                        Entity entity;
-                        HostileEntity hostileEntity;
-                        BossPart bossPart;
-
-                        if (stageIndex < existingGameObjects.Count)
-                        {
-                            gameObject = existingGameObjects[stageIndex];
-                            entity = existingEntities[stageIndex];
-                            hostileEntity = existingHostileEntities[stageIndex / 2];
-                            bossPart = existingBossParts[stageIndex / 2];
-
-                            gameObject.GameObjectName = gameObjectName;
-                            gameObject.Description = i == 0 ? part.Description : null;
-                            gameObject.Sprite = stage.Sprite;
-                            gameObject.TransformName = previousGameObject?.GameObjectName;
-
-                            entity.EntityId = stage.EntityId;
-                            entity.Hp = stage.Hp;
-                            entity.Defense = (short)stage.Defense;
-
-                            hostileEntity.ContactDamage = (short)stage.ContactDamage;
-
-                            _context.GameObject.Update(gameObject);
-                            _context.Entity.Update(entity);
-                            _context.HostileEntity.Update(hostileEntity);
-
-                            var oldEnemies = await _context.BossPartEnemies
-                                .Where(bpe => bpe.BossPartId == bossPart.BossPartId)
-                                .ToListAsync();
-                            _context.BossPartEnemies.RemoveRange(oldEnemies);
-
-                            var oldDrops = await _context.EntityDrop
-                                .Where(ed => ed.EntityId == entity.EntityId)
-                                .ToListAsync();
-                            _context.EntityDrop.RemoveRange(oldDrops);
-                        }
-                        else
-                        {
-                            gameObject = new GameObject
-                            {
-                                GameObjectName = gameObjectName,
-                                Description = i == 0 ? part.Description : null,
-                                Sprite = stage.Sprite,
-                                TransformName = previousGameObject?.GameObjectName
-                            };
-                            _context.GameObject.Add(gameObject);
-
-                            entity = new Entity
-                            {
-                                EntityId = stage.EntityId,
-                                GameObjectName = gameObject.GameObjectName,
-                                Hp = stage.Hp,
-                                Defense = (short)stage.Defense
-                            };
-                            _context.Entity.Add(entity);
-
-                            hostileEntity = new HostileEntity
-                            {
-                                EntityId = entity.EntityId,
-                                ContactDamage = (short)stage.ContactDamage
-                            };
-                            _context.HostileEntity.Add(hostileEntity);
-
-                            bossPart = new BossPart
-                            {
-                                BossName = originalBoss.BossName,
-                                HostileEntityId = hostileEntity.HostileEntityId,
-                                Quantity = (short)part.Quantity
-                            };
-                            _context.BossPart.Add(bossPart);
-                        }
-
-                        if (i == 0)
-                        {
-                            foreach (var enemy in stage.SpawnedEnemies.Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0))
-                            {
-                                var bossPartEnemy = new BossPartEnemies
-                                {
-                                    BossPartId = bossPart.BossPartId,
-                                    EnemyId = short.Parse(enemy.EnemyId),
-                                    Quantity = (short)enemy.Quantity
-                                };
-                                _context.BossPartEnemies.Add(bossPartEnemy);
-                            }
-                        }
-
-                        foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
-                        {
-                            var entityDrop = new EntityDrop
-                            {
-                                EntityId = entity.EntityId,
-                                ItemId = short.Parse(drop.ItemId),
-                                Quantity = (short)drop.Quantity
-                            };
-                            _context.EntityDrop.Add(entityDrop);
-                        }
-
-                        previousGameObject = gameObject;
-                        stageIndex++;
-                    }
-                }
-
-                for (int i = stageIndex; i < existingGameObjects.Count; i++)
-                {
-                    _context.GameObject.Remove(existingGameObjects[i]);
-                }
-
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-
-            return View(viewModel);
-        }
+        //// GET: Bosses/Edit/5
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> Edit(string name)
+        //{
+        //    var boss = await _context.Boss
+        //        .Include(b => b.BossParts)
+        //            .ThenInclude(bp => bp.HostileEntity)
+        //                .ThenInclude(he => he.Entity)
+        //                    .ThenInclude(e => e.GameObject)
+        //        .Include(b => b.BossParts)
+        //            .ThenInclude(bp => bp.HostileEntity)
+        //                .ThenInclude(he => he.Entity)
+        //                    .ThenInclude(e => e.EntityDrops)
+        //                        .ThenInclude(ed => ed.Item)
+        //                            .ThenInclude(i => i.GameObject)
+        //        .Include(b => b.BossParts)
+        //            .ThenInclude(bp => bp.BossPartEnemies)
+        //                .ThenInclude(bpe => bpe.Enemy)
+        //                    .ThenInclude(e => e.HostileEntity)
+        //                        .ThenInclude(he => he.Entity)
+        //                            .ThenInclude(e => e.GameObject)
+        //        .Include(b => b.BossDrops)
+        //            .ThenInclude(bd => bd.Item)
+        //                .ThenInclude(i => i.GameObject)
+        //        .FirstOrDefaultAsync(b => b.BossName == name);
+
+        //    if (boss == null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    var viewModel = new BossEditViewModel
+        //    {
+        //        OriginalBossName = boss.BossName,
+        //        BossName = boss.BossName,
+        //        SummonItemId = boss.SummonItemId?.ToString()
+        //    };
+
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
+
+        //    viewModel.AvailableEnemies = _context.Enemy
+        //        .Include(e => e.HostileEntity)
+        //            .ThenInclude(he => he.Entity)
+        //                .ThenInclude(e => e.GameObject)
+        //        .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+        //        .Select(e => new SelectListItem
+        //        {
+        //            Value = e.EnemyId.ToString(),
+        //            Text = e.HostileEntity.Entity.GameObject.GameObjectName
+        //        })
+        //        .ToList();
+
+        //    var bossDrops = boss.BossDrops.ToList();
+        //    for (int i = 0; i < 15; i++)
+        //    {
+        //        var drop = new BossDropEditViewModel();
+        //        if (i < bossDrops.Count)
+        //        {
+        //            drop.ItemId = bossDrops[i].ItemId.ToString();
+        //            drop.Quantity = bossDrops[i].Quantity;
+        //        }
+        //        viewModel.BossDrops.Add(drop);
+        //    }
+
+        //    var existingPartsData = new List<(
+        //        BossPart part,
+        //        List<(GameObject go, Entity entity, HostileEntity hostile, List<BossPartEnemies> enemies, List<EntityDrop> drops)>
+        //    )>();
+
+        //    foreach (var part in boss.BossParts)
+        //    {
+        //        var stagesData = new List<(GameObject go, Entity entity, HostileEntity hostile, List<BossPartEnemies> enemies, List<EntityDrop> drops)>();
+        //        var current = part.HostileEntity.Entity.GameObject;
+
+        //        while (current != null)
+        //        {
+        //            var entity = await _context.Entity
+        //                .Include(e => e.EntityDrops)
+        //                .FirstOrDefaultAsync(e => e.GameObjectName == current.GameObjectName);
+
+        //            var enemies = await _context.BossPartEnemies
+        //                .Where(bpe => bpe.BossPartId == part.BossPartId)
+        //                .ToListAsync();
+
+        //            if (entity != null)
+        //            {
+        //                stagesData.Add((current, entity, part.HostileEntity, enemies, entity.EntityDrops.ToList()));
+        //            }
+
+        //            current = await _context.GameObject
+        //                .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+        //        }
+
+        //        existingPartsData.Add((part, stagesData));
+        //    }
+
+        //    var bossParts = boss.BossParts.ToList();
+        //    for (int i = 0; i < 5; i++)
+        //    {
+        //        var part = new BossPartEditViewModel();
+
+        //        if (i < bossParts.Count)
+        //        {
+        //            var currentPart = bossParts[i];
+        //            part.PartName = currentPart.HostileEntity.Entity.GameObject.GameObjectName;
+        //            part.Description = currentPart.HostileEntity.Entity.GameObject.Description ?? string.Empty;
+        //            part.Quantity = currentPart.Quantity;
+
+        //            var stages = currentPart.HostileEntity.Entity.GameObject.GetAllStages().ToList();
+        //            for (int j = 0; j < 2; j++)
+        //            {
+        //                var stage = new BossStageEditViewModel();
+
+        //                if (j < stages.Count)
+        //                {
+        //                    var currentStage = stages[j];
+        //                    var entity = await _context.Entity
+        //                        .FirstOrDefaultAsync(e => e.GameObjectName == currentStage.GameObjectName);
+        //                    var enemies = await _context.BossPartEnemies
+        //                        .Include(bpe => bpe.Enemy)
+        //                            .ThenInclude(e => e.HostileEntity)
+        //                                .ThenInclude(he => he.Entity)
+        //                                    .ThenInclude(e => e.GameObject)
+        //                        .Where(bpe => bpe.BossPartId == currentPart.BossPartId)
+        //                        .ToListAsync();
+
+        //                    stage.Sprite = currentStage.Sprite;
+        //                    stage.Hp = entity?.Hp ?? 0;
+        //                    stage.Defense = entity?.Defense ?? 0;
+        //                    stage.EntityId = entity?.EntityId ?? 0;
+        //                    stage.ContactDamage = currentPart.HostileEntity.ContactDamage;
+
+        //                    var spawnedEnemies = enemies.ToList();
+        //                    for (int k = 0; k < 3; k++)
+        //                    {
+        //                        var enemy = new BossStageEnemyEditViewModel();
+        //                        if (k < spawnedEnemies.Count)
+        //                        {
+        //                            enemy.EnemyId = spawnedEnemies[k].EnemyId.ToString();
+        //                            enemy.Quantity = spawnedEnemies[k].Quantity;
+        //                        }
+        //                        stage.SpawnedEnemies.Add(enemy);
+        //                    }
+
+        //                    var drops = entity?.EntityDrops.ToList() ?? new List<EntityDrop>();
+        //                    for (int k = 0; k < 3; k++)
+        //                    {
+        //                        var drop = new BossStageDropEditViewModel();
+        //                        if (k < drops.Count)
+        //                        {
+        //                            drop.ItemId = drops[k].ItemId.ToString();
+        //                            drop.Quantity = drops[k].Quantity;
+        //                        }
+        //                        stage.Drops.Add(drop);
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    for (int k = 0; k < 3; k++)
+        //                    {
+        //                        stage.SpawnedEnemies.Add(new BossStageEnemyEditViewModel());
+        //                        stage.Drops.Add(new BossStageDropEditViewModel());
+        //                    }
+        //                }
+
+        //                part.Stages.Add(stage);
+        //            }
+        //        }
+        //        else
+        //        {
+        //            for (int j = 0; j < 2; j++)
+        //            {
+        //                var stage = new BossStageEditViewModel();
+        //                for (int k = 0; k < 3; k++)
+        //                {
+        //                    stage.SpawnedEnemies.Add(new BossStageEnemyEditViewModel());
+        //                    stage.Drops.Add(new BossStageDropEditViewModel());
+        //                }
+        //                part.Stages.Add(stage);
+        //            }
+        //        }
+
+        //        viewModel.BossParts.Add(part);
+        //    }
+
+        //    return View(viewModel);
+        //}
+
+        //// POST: Bosses/Edit/5
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<IActionResult> Edit(BossEditViewModel viewModel)
+        //{
+        //    viewModel.AvailableItems = _context.Item
+        //        .Include(i => i.GameObject)
+        //        .Where(i => i.GameObject.TransformedFrom == null)
+        //        .Select(i => new SelectListItem
+        //        {
+        //            Value = i.ItemId.ToString(),
+        //            Text = i.GameObject.GameObjectName
+        //        })
+        //        .ToList();
+
+        //    viewModel.AvailableEnemies = _context.Enemy
+        //        .Include(e => e.HostileEntity)
+        //            .ThenInclude(he => he.Entity)
+        //                .ThenInclude(e => e.GameObject)
+        //        .Where(e => e.HostileEntity.Entity.GameObject.TransformedFrom == null)
+        //        .Select(e => new SelectListItem
+        //        {
+        //            Value = e.EnemyId.ToString(),
+        //            Text = e.HostileEntity.Entity.GameObject.GameObjectName
+        //        })
+        //        .ToList();
+
+        //    if (ModelState.IsValid)
+        //    {
+        //        var originalBoss = await _context.Boss
+        //            .Include(b => b.BossDrops)
+        //            .Include(b => b.BossParts)
+        //                .ThenInclude(bp => bp.HostileEntity)
+        //                    .ThenInclude(he => he.Entity)
+        //                        .ThenInclude(e => e.GameObject)
+        //            .Include(b => b.BossParts)
+        //                .ThenInclude(bp => bp.HostileEntity)
+        //                    .ThenInclude(he => he.Entity)
+        //                        .ThenInclude(e => e.EntityDrops)
+        //            .Include(b => b.BossParts)
+        //                .ThenInclude(bp => bp.BossPartEnemies)
+        //            .FirstOrDefaultAsync(b => b.BossName == viewModel.OriginalBossName);
+
+        //        if (originalBoss == null)
+        //        {
+        //            return NotFound();
+        //        }
+
+        //        if (string.IsNullOrEmpty(viewModel.BossName))
+        //        {
+        //            ModelState.AddModelError("BossName", "Boss name is required");
+        //            return View(viewModel);
+        //        }
+
+        //        if (viewModel.BossName.Length > 50)
+        //        {
+        //            ModelState.AddModelError("BossName", "Boss name cannot exceed 50 characters");
+        //            return View(viewModel);
+        //        }
+
+        //        if (viewModel.OriginalBossName != viewModel.BossName &&
+        //            await _context.Boss.AnyAsync(b => b.BossName == viewModel.BossName))
+        //        {
+        //            ModelState.AddModelError("BossName", "A boss with this name already exists");
+        //            return View(viewModel);
+        //        }
+
+        //        var filledParts = viewModel.BossParts
+        //            .Where(p => !string.IsNullOrEmpty(p.PartName))
+        //            .ToList();
+
+        //        if (!filledParts.Any())
+        //        {
+        //            ModelState.AddModelError("", "At least one boss part must be filled");
+        //            return View(viewModel);
+        //        }
+
+        //        var partNames = filledParts.Select(p => p.PartName).ToList();
+        //        if (partNames.Count != partNames.Distinct().Count())
+        //        {
+        //            ModelState.AddModelError("", "Part names must be unique");
+        //            return View(viewModel);
+        //        }
+
+        //        var allGameObjectNames = new List<string>();
+        //        var allSprites = new List<string>();
+        //        var allEntityIds = new List<short>();
+
+        //        foreach (var part in filledParts)
+        //        {
+        //            var filledStages = part.Stages
+        //                .Where(s => !string.IsNullOrEmpty(s.Sprite))
+        //                .ToList();
+
+        //            if (!filledStages.Any())
+        //            {
+        //                ModelState.AddModelError("", $"Part '{part.PartName}' must have at least one stage");
+        //                return View(viewModel);
+        //            }
+
+        //            foreach (var stage in filledStages)
+        //            {
+        //                if (stage.Hp < 0 || stage.Hp > 150000)
+        //                {
+        //                    ModelState.AddModelError("", "HP must be between 0 and 150000");
+        //                    return View(viewModel);
+        //                }
+        //                if (stage.Defense < 0 || stage.Defense > 100)
+        //                {
+        //                    ModelState.AddModelError("", "Defense must be between 0 and 100");
+        //                    return View(viewModel);
+        //                }
+        //                if (stage.ContactDamage < 0 || stage.ContactDamage > 500)
+        //                {
+        //                    ModelState.AddModelError("", "Contact damage must be between 0 and 500");
+        //                    return View(viewModel);
+        //                }
+        //                if (stage.EntityId < -500 || stage.EntityId > 1000)
+        //                {
+        //                    ModelState.AddModelError("", "Entity ID must be between -500 and 1000");
+        //                    return View(viewModel);
+        //                }
+        //            }
+
+        //            for (int i = 0; i < filledStages.Count; i++)
+        //            {
+        //                var stage = filledStages[i];
+        //                var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
+
+        //                allGameObjectNames.Add(gameObjectName);
+        //                allSprites.Add(stage.Sprite);
+        //                allEntityIds.Add(stage.EntityId);
+        //            }
+        //        }
+
+        //        if (allGameObjectNames.Count != allGameObjectNames.Distinct().Count())
+        //        {
+        //            ModelState.AddModelError("", "Game object names must be unique across all parts and stages");
+        //            return View(viewModel);
+        //        }
+
+        //        if (allSprites.Count != allSprites.Distinct().Count())
+        //        {
+        //            ModelState.AddModelError("", "Sprites must be unique across all parts and stages");
+        //            return View(viewModel);
+        //        }
+
+        //        if (allEntityIds.Count != allEntityIds.Distinct().Count())
+        //        {
+        //            ModelState.AddModelError("", "Entity IDs must be unique across all parts and stages");
+        //            return View(viewModel);
+        //        }
+
+        //        var existingGameObjects = new List<GameObject>();
+        //        var existingEntities = new List<Entity>();
+        //        var existingHostileEntities = new List<HostileEntity>();
+        //        var existingBossParts = new List<BossPart>();
+        //        var existingBossPartEnemies = new List<BossPartEnemies>();
+        //        var existingEntityDrops = new List<EntityDrop>();
+
+        //        foreach (var part in originalBoss.BossParts)
+        //        {
+        //            existingBossParts.Add(part);
+        //            existingHostileEntities.Add(part.HostileEntity);
+        //            existingBossPartEnemies.AddRange(part.BossPartEnemies);
+
+        //            var current = part.HostileEntity.Entity.GameObject;
+        //            while (current != null && !existingGameObjects.Contains(current))
+        //            {
+        //                existingGameObjects.Add(current);
+        //                var entity = await _context.Entity
+        //                    .Include(e => e.EntityDrops)
+        //                    .FirstOrDefaultAsync(e => e.GameObjectName == current.GameObjectName);
+        //                if (entity != null)
+        //                {
+        //                    existingEntities.Add(entity);
+        //                    existingEntityDrops.AddRange(entity.EntityDrops);
+        //                }
+        //                current = await _context.GameObject
+        //                    .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+        //            }
+        //        }
+
+        //        var existingEntityIds = existingEntities.Select(e => e.EntityId).ToList();
+        //        foreach (var entityId in allEntityIds)
+        //        {
+        //            if (!existingEntityIds.Contains(entityId) &&
+        //                await _context.Entity.AnyAsync(e => e.EntityId == entityId))
+        //            {
+        //                ModelState.AddModelError("", $"Entity ID {entityId} is already in use");
+        //                return View(viewModel);
+        //            }
+        //        }
+
+        //        var existingNames = existingGameObjects.Select(go => go.GameObjectName).ToList();
+        //        foreach (var name in allGameObjectNames)
+        //        {
+        //            if (!existingNames.Contains(name) &&
+        //                await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+        //            {
+        //                ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+        //                return View(viewModel);
+        //            }
+        //        }
+
+        //        var existingSprites = existingGameObjects.Select(go => go.Sprite).ToList();
+        //        foreach (var sprite in allSprites)
+        //        {
+        //            if (!existingSprites.Contains(sprite) &&
+        //                await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+        //            {
+        //                ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+        //                return View(viewModel);
+        //            }
+        //        }
+
+        //        _context.BossDrop.RemoveRange(originalBoss.BossDrops);
+
+        //        originalBoss.BossName = viewModel.BossName;
+        //        originalBoss.SummonItemId = !string.IsNullOrEmpty(viewModel.SummonItemId) ? short.Parse(viewModel.SummonItemId) : null;
+
+        //        foreach (var drop in viewModel.BossDrops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+        //        {
+        //            var bossDrop = new BossDrop
+        //            {
+        //                BossName = originalBoss.BossName,
+        //                ItemId = short.Parse(drop.ItemId),
+        //                Quantity = (short)drop.Quantity
+        //            };
+        //            _context.BossDrop.Add(bossDrop);
+        //        }
+
+        //        var stageIndex = 0;
+
+        //        foreach (var part in filledParts)
+        //        {
+        //            var filledStages = part.Stages
+        //                .Where(s => !string.IsNullOrEmpty(s.Sprite))
+        //                .ToList();
+
+        //            GameObject? previousGameObject = null;
+
+        //            for (int i = 0; i < filledStages.Count; i++)
+        //            {
+        //                var stage = filledStages[i];
+        //                var gameObjectName = i == 0 ? part.PartName : $"{part.PartName}_{i + 1}";
+
+        //                GameObject gameObject;
+        //                Entity entity;
+        //                HostileEntity hostileEntity;
+        //                BossPart bossPart;
+
+        //                if (stageIndex < existingGameObjects.Count)
+        //                {
+        //                    gameObject = existingGameObjects[stageIndex];
+        //                    entity = existingEntities[stageIndex];
+        //                    hostileEntity = existingHostileEntities[stageIndex / 2];
+        //                    bossPart = existingBossParts[stageIndex / 2];
+
+        //                    gameObject.GameObjectName = gameObjectName;
+        //                    gameObject.Description = i == 0 ? part.Description : null;
+        //                    gameObject.Sprite = stage.Sprite;
+        //                    gameObject.TransformName = previousGameObject?.GameObjectName;
+
+        //                    entity.EntityId = stage.EntityId;
+        //                    entity.Hp = stage.Hp;
+        //                    entity.Defense = (short)stage.Defense;
+
+        //                    hostileEntity.ContactDamage = (short)stage.ContactDamage;
+
+        //                    _context.GameObject.Update(gameObject);
+        //                    _context.Entity.Update(entity);
+        //                    _context.HostileEntity.Update(hostileEntity);
+
+        //                    var oldEnemies = await _context.BossPartEnemies
+        //                        .Where(bpe => bpe.BossPartId == bossPart.BossPartId)
+        //                        .ToListAsync();
+        //                    _context.BossPartEnemies.RemoveRange(oldEnemies);
+
+        //                    var oldDrops = await _context.EntityDrop
+        //                        .Where(ed => ed.EntityId == entity.EntityId)
+        //                        .ToListAsync();
+        //                    _context.EntityDrop.RemoveRange(oldDrops);
+        //                }
+        //                else
+        //                {
+        //                    gameObject = new GameObject
+        //                    {
+        //                        GameObjectName = gameObjectName,
+        //                        Description = i == 0 ? part.Description : null,
+        //                        Sprite = stage.Sprite,
+        //                        TransformName = previousGameObject?.GameObjectName
+        //                    };
+        //                    _context.GameObject.Add(gameObject);
+
+        //                    entity = new Entity
+        //                    {
+        //                        EntityId = stage.EntityId,
+        //                        GameObjectName = gameObject.GameObjectName,
+        //                        Hp = stage.Hp,
+        //                        Defense = (short)stage.Defense
+        //                    };
+        //                    _context.Entity.Add(entity);
+
+        //                    hostileEntity = new HostileEntity
+        //                    {
+        //                        EntityId = entity.EntityId,
+        //                        ContactDamage = (short)stage.ContactDamage
+        //                    };
+        //                    _context.HostileEntity.Add(hostileEntity);
+
+        //                    bossPart = new BossPart
+        //                    {
+        //                        BossName = originalBoss.BossName,
+        //                        HostileEntityId = hostileEntity.HostileEntityId,
+        //                        Quantity = (short)part.Quantity
+        //                    };
+        //                    _context.BossPart.Add(bossPart);
+        //                }
+
+        //                if (i == 0)
+        //                {
+        //                    foreach (var enemy in stage.SpawnedEnemies.Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0))
+        //                    {
+        //                        var bossPartEnemy = new BossPartEnemies
+        //                        {
+        //                            BossPartId = bossPart.BossPartId,
+        //                            EnemyId = short.Parse(enemy.EnemyId),
+        //                            Quantity = (short)enemy.Quantity
+        //                        };
+        //                        _context.BossPartEnemies.Add(bossPartEnemy);
+        //                    }
+        //                }
+
+        //                foreach (var drop in stage.Drops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+        //                {
+        //                    var entityDrop = new EntityDrop
+        //                    {
+        //                        EntityId = entity.EntityId,
+        //                        ItemId = short.Parse(drop.ItemId),
+        //                        Quantity = (short)drop.Quantity
+        //                    };
+        //                    _context.EntityDrop.Add(entityDrop);
+        //                }
+
+        //                previousGameObject = gameObject;
+        //                stageIndex++;
+        //            }
+        //        }
+
+        //        for (int i = stageIndex; i < existingGameObjects.Count; i++)
+        //        {
+        //            _context.GameObject.Remove(existingGameObjects[i]);
+        //        }
+
+        //        await _context.SaveChangesAsync();
+        //        return RedirectToAction(nameof(Index));
+        //    }
+
+        //    return View(viewModel);
+        //}
 
         // GET: Bosses/Delete/5
         [Authorize(Roles = "Admin")]
