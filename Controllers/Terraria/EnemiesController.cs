@@ -63,16 +63,6 @@ namespace TerrariaDB.Controllers.Terraria
                 Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
                 Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty,
                 Sprite = enemy.HostileEntity.Entity.GameObject.Sprite,
-                EntityId = enemy.HostileEntity.Entity.EntityId.ToString(),
-                Hp = enemy.HostileEntity.Entity.Hp ?? 0,
-                Defense = enemy.HostileEntity.Entity.Defense,
-                ContactDamage = enemy.HostileEntity.ContactDamage,
-                Drops = enemy.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
-                {
-                    Name = ed.Item.GameObject.GameObjectName,
-                    Sprite = ed.Item.GameObject.Sprite,
-                    Quantity = ed.Quantity
-                }).ToList(),
                 Transformations = await GetTransformations(enemy.HostileEntity.Entity.GameObject)
             };
 
@@ -83,50 +73,44 @@ namespace TerrariaDB.Controllers.Terraria
         {
             var transformations = new List<EnemyTransformationViewModel>();
 
-            var enemyAtFirstStage = await _context.Enemy
+            var allGameObjects = await _context.GameObject
+                .Include(g => g.Transform)
+                .Include(g => g.TransformedFrom)
+                .ToListAsync();
+
+            var firstStage = gameObject;
+            while (firstStage.TransformedFrom != null)
+            {
+                firstStage = firstStage.TransformedFrom;
+            }
+
+            var stages = new List<GameObject>();
+            var current = firstStage;
+            while (current != null)
+            {
+                stages.Add(current);
+                current = current.Transform;
+            }
+
+            var stageNames = stages.Select(s => s.GameObjectName).ToList();
+
+            var enemiesDict = await _context.Enemy
                 .Include(e => e.HostileEntity)
                     .ThenInclude(he => he.Entity)
                         .ThenInclude(en => en.EntityDrops)
                             .ThenInclude(ed => ed.Item)
                                 .ThenInclude(i => i.GameObject)
-                .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == gameObject.GameObjectName);
+                .Where(e => stageNames.Contains(e.HostileEntity.Entity.GameObjectName))
+                .ToDictionaryAsync(e => e.HostileEntity.Entity.GameObjectName);
 
-            if (enemyAtFirstStage != null)
+            foreach (var stage in stages)
             {
-                transformations.Add(new EnemyTransformationViewModel
-                {
-                    Name = gameObject.GameObjectName,
-                    Sprite = gameObject.Sprite,
-                    EntityId = enemyAtFirstStage.HostileEntity.Entity.EntityId.ToString(),
-                    Hp = enemyAtFirstStage.HostileEntity.Entity.Hp ?? 0,
-                    Defense = enemyAtFirstStage.HostileEntity.Entity.Defense,
-                    ContactDamage = enemyAtFirstStage.HostileEntity.ContactDamage,
-                    Drops = enemyAtFirstStage.HostileEntity.Entity.EntityDrops.Select(ed => new EnemyDropViewModel
-                    {
-                        Name = ed.Item.GameObject.GameObjectName,
-                        Sprite = ed.Item.GameObject.Sprite,
-                        Quantity = ed.Quantity
-                    }).ToList()
-                });
-            }
-
-            var current = gameObject.Transform;
-            while (current != null)
-            {
-                var enemyAtStage = await _context.Enemy
-                    .Include(e => e.HostileEntity)
-                        .ThenInclude(he => he.Entity)
-                            .ThenInclude(en => en.EntityDrops)
-                                .ThenInclude(ed => ed.Item)
-                                    .ThenInclude(i => i.GameObject)
-                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
-
-                if (enemyAtStage != null)
+                if (enemiesDict.TryGetValue(stage.GameObjectName, out var enemyAtStage))
                 {
                     transformations.Add(new EnemyTransformationViewModel
                     {
-                        Name = current.GameObjectName,
-                        Sprite = current.Sprite,
+                        Name = stage.GameObjectName,
+                        Sprite = stage.Sprite,
                         EntityId = enemyAtStage.HostileEntity.Entity.EntityId.ToString(),
                         Hp = enemyAtStage.HostileEntity.Entity.Hp ?? 0,
                         Defense = enemyAtStage.HostileEntity.Entity.Defense,
@@ -139,8 +123,6 @@ namespace TerrariaDB.Controllers.Terraria
                         }).ToList()
                     });
                 }
-
-                current = current.Transform;
             }
 
             return transformations;

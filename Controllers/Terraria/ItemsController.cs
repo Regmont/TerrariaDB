@@ -46,7 +46,7 @@ namespace TerrariaDB.Controllers.Terraria
                 .Include(i => i.CurrencyType)
                 .Include(i => i.CraftingStation)
                 .Include(i => i.SummonedBoss)
-                    .ThenInclude(b => b.BossParts)
+                    .ThenInclude(b => b!.BossParts)
                         .ThenInclude(bp => bp.HostileEntity)
                             .ThenInclude(he => he.Entity)
                                 .ThenInclude(e => e.GameObject)
@@ -81,7 +81,7 @@ namespace TerrariaDB.Controllers.Terraria
                 BasePrice = item.BasePrice,
                 CurrencyType = item.CurrencyType.CurrencyName,
                 CraftingStationName = item.CraftingStation?.CraftingStationName,
-                Transformations = GetTransformations(item.GameObject)
+                Transformations = await GetTransformations(item.GameObject)
             };
 
             if (item.SummonedBoss != null)
@@ -118,19 +118,37 @@ namespace TerrariaDB.Controllers.Terraria
             return View(viewModel);
         }
 
-        private List<ItemTransformationViewModel> GetTransformations(GameObject gameObject)
+        private async Task<List<ItemTransformationViewModel>> GetTransformations(GameObject gameObject)
         {
             var transformations = new List<ItemTransformationViewModel>();
 
-            var current = gameObject.Transform;
+            var allGameObjects = await _context.GameObject
+                .Include(g => g.Transform)
+                .Include(g => g.TransformedFrom)
+                .ToListAsync();
+
+            var firstStage = gameObject;
+            while (firstStage.TransformedFrom != null)
+            {
+                firstStage = firstStage.TransformedFrom;
+            }
+
+            var current = firstStage;
             while (current != null)
             {
-                transformations.Add(new ItemTransformationViewModel
+                if (current != gameObject)
                 {
-                    Name = current.GameObjectName,
-                    Sprite = current.Sprite
-                });
+                    var item = await _context.Item
+                        .Include(i => i.GameObject)
+                        .FirstOrDefaultAsync(i => i.GameObjectName == current.GameObjectName);
 
+                    transformations.Add(new ItemTransformationViewModel
+                    {
+                        Name = current.GameObjectName,
+                        Sprite = current.Sprite,
+                        ItemId = item?.ItemId.ToString() ?? string.Empty
+                    });
+                }
                 current = current.Transform;
             }
 
@@ -254,13 +272,14 @@ namespace TerrariaDB.Controllers.Terraria
                 {
                     var (itemId, stage) = validStages[i];
                     var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
+                    var nextGameObjectName = i < validStages.Count - 1 ? $"{viewModel.Name}_{i + 2}" : null;
 
                     var gameObject = new GameObject
                     {
                         GameObjectName = gameObjectName,
-                        Description = viewModel.Description,
+                        Description = i == 0 ? viewModel.Description : null,
                         Sprite = stage.Sprite,
-                        TransformName = i < validStages.Count - 1 ? $"{viewModel.Name}_{i + 2}" : null
+                        TransformName = nextGameObjectName
                     };
 
                     _context.GameObject.Add(gameObject);
@@ -521,7 +540,7 @@ namespace TerrariaDB.Controllers.Terraria
                 .Include(i => i.GameObject)
                 .Include(i => i.ResultRecipes)
                 .Include(i => i.CraftingStation)
-                    .ThenInclude(cs => cs.Items)
+                    .ThenInclude(cs => cs!.Items)
                 .FirstOrDefaultAsync(i => i.ItemId == id);
 
             if (item == null)

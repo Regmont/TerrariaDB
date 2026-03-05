@@ -56,51 +56,51 @@
                                                     _ => "table-btn"
                                                 };
                                             }
-                                            <span class="table-btn table-btn-sm entity-badge">@entity.Type</span>
+                                            <span>@entity.Type</span>
                                         </td>
                                         <td>
                                             <div class="table-actions">
                                                 @if (entity.Type == "BossPart")
                                                 {
-                                                    <a asp-controller="Boss" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                    <a asp-controller="Bosses" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
                                                         Details
                                                     </a>
                                                     @if (User.IsInRole("Admin"))
                                                     {
-                                                        <a asp-controller="Boss" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                        @* <a asp-controller="Bosses" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
                                                             Edit
-                                                        </a>
-                                                        <a asp-controller="Boss" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                        </a> *@
+                                                        <a asp-controller="Bosses" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
                                                             Delete
                                                         </a>
                                                     }
                                                 }
                                                 else if (entity.Type == "Enemy")
                                                 {
-                                                    <a asp-controller="Enemy" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                    <a asp-controller="Enemies" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
                                                         Details
                                                     </a>
                                                     @if (User.IsInRole("Admin"))
                                                     {
-                                                        <a asp-controller="Enemy" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                        @* <a asp-controller="Enemies" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
                                                             Edit
-                                                        </a>
-                                                        <a asp-controller="Enemy" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                        </a> *@
+                                                        <a asp-controller="Enemies" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
                                                             Delete
                                                         </a>
                                                     }
                                                 }
                                                 else if (entity.Type == "TownNpc")
                                                 {
-                                                    <a asp-controller="TownNpc" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
+                                                    <a asp-controller="TownNpcs" asp-action="Details" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-info" title="Details">
                                                         Details
                                                     </a>
                                                     @if (User.IsInRole("Admin"))
                                                     {
-                                                        <a asp-controller="TownNpc" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
+                                                        @* <a asp-controller="TownNpcs" asp-action="Edit" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-warning" title="Edit">
                                                             Edit
-                                                        </a>
-                                                        <a asp-controller="TownNpc" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
+                                                        </a> *@
+                                                        <a asp-controller="TownNpcs" asp-action="Delete" asp-route-id="@entity.TypeId" class="table-btn table-btn-sm table-btn-danger" title="Delete">
                                                             Delete
                                                         </a>
                                                     }

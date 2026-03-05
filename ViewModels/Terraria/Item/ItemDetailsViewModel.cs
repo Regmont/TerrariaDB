@@ -26,6 +26,7 @@
     {
         public string Name { get; set; } = string.Empty;
         public string Sprite { get; set; } = string.Empty;
+        public string ItemId { get; set; } = string.Empty;
     }
 
     public class ItemBossDropViewModel

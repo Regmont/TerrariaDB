@@ -49,11 +49,11 @@ namespace TerrariaDB.Controllers.Terraria
                     .ThenInclude(e => e.GameObject)
                 .Include(t => t.Entity)
                     .ThenInclude(e => e.EntityDrops)
-                        .ThenInclude(ed => ed.Item)
-                            .ThenInclude(i => i.GameObject)
+                    .ThenInclude(ed => ed.Item)
+                    .ThenInclude(i => i.GameObject)
                 .Include(t => t.TradeOffers)
                     .ThenInclude(to => to.Item)
-                        .ThenInclude(i => i.GameObject)
+                    .ThenInclude(i => i.GameObject)
                 .Include(t => t.TradeOffers)
                     .ThenInclude(to => to.TradeType)
                 .FirstOrDefaultAsync(t => t.TownNpcId == id);
@@ -62,6 +62,44 @@ namespace TerrariaDB.Controllers.Terraria
             {
                 return NotFound();
             }
+
+            var allStages = await GetAllStages(townNpc.Entity.GameObject);
+            var allStageNames = allStages.Select(s => s.GameObjectName).ToList();
+
+            var allNpcs = await _context.TownNpc
+                .Include(t => t.Entity)
+                    .ThenInclude(e => e.EntityDrops)
+                        .ThenInclude(ed => ed.Item)
+                            .ThenInclude(i => i.GameObject)
+                .Include(t => t.TradeOffers)
+                    .ThenInclude(to => to.Item)
+                        .ThenInclude(i => i.GameObject)
+                .Include(t => t.TradeOffers)
+                    .ThenInclude(to => to.TradeType)
+                .Where(t => allStageNames.Contains(t.Entity.GameObjectName))
+                .ToListAsync();
+
+            var allDrops = allNpcs
+                .SelectMany(n => n.Entity.EntityDrops)
+                .Select(ed => new TownNpcDropViewModel
+                {
+                    Name = ed.Item.GameObject.GameObjectName,
+                    Sprite = ed.Item.GameObject.Sprite,
+                    Quantity = ed.Quantity
+                })
+                .ToList();
+
+            var allTrades = allNpcs
+                .SelectMany(n => n.TradeOffers)
+                .Select(to => new TownNpcTradeViewModel
+                {
+                    Name = to.Item.GameObject.GameObjectName,
+                    Sprite = to.Item.GameObject.Sprite,
+                    Quantity = to.Quantity,
+                    TotalPrice = to.Item.BasePrice * to.Quantity,
+                    TradeType = to.TradeType.TradeTypeName
+                })
+                .ToList();
 
             var viewModel = new TownNpcDetailsViewModel
             {
@@ -72,66 +110,64 @@ namespace TerrariaDB.Controllers.Terraria
                 EntityId = townNpc.EntityId.ToString(),
                 Hp = townNpc.Entity.Hp ?? 0,
                 Defense = townNpc.Entity.Defense,
-                Drops = townNpc.Entity.EntityDrops.Select(ed => new TownNpcDropViewModel
-                {
-                    Name = ed.Item.GameObject.GameObjectName,
-                    Sprite = ed.Item.GameObject.Sprite,
-                    Quantity = ed.Quantity
-                }).ToList(),
-                Trades = townNpc.TradeOffers.Select(to => new TownNpcTradeViewModel
-                {
-                    Name = to.Item.GameObject.GameObjectName,
-                    Sprite = to.Item.GameObject.Sprite,
-                    Quantity = to.Quantity,
-                    TotalPrice = to.Item.BasePrice * to.Quantity,
-                    TradeType = to.TradeType.TradeTypeName
-                }).ToList(),
+                Drops = allDrops,
+                Trades = allTrades,
                 Transformations = await GetTransformations(townNpc.Entity.GameObject)
             };
 
             return View(viewModel);
         }
 
+        private async Task<List<GameObject>> GetAllStages(GameObject gameObject)
+        {
+            var stages = new List<GameObject>();
+
+            var allGameObjects = await _context.GameObject
+                .Include(g => g.Transform)
+                .Include(g => g.TransformedFrom)
+                .ToListAsync();
+
+            var firstStage = gameObject;
+            while (firstStage.TransformedFrom != null)
+            {
+                firstStage = firstStage.TransformedFrom;
+            }
+
+            var current = firstStage;
+            while (current != null)
+            {
+                stages.Add(current);
+                current = current.Transform;
+            }
+
+            return stages;
+        }
+
         private async Task<List<TownNpcTransformationViewModel>> GetTransformations(GameObject gameObject)
         {
             var transformations = new List<TownNpcTransformationViewModel>();
 
-            var firstStageNpc = await _context.TownNpc
+            var allStages = await GetAllStages(gameObject);
+            var stageNames = allStages.Select(s => s.GameObjectName).ToList();
+
+            var npcsAtStages = await _context.TownNpc
                 .Include(t => t.Entity)
-                .FirstOrDefaultAsync(t => t.Entity.GameObjectName == gameObject.GameObjectName);
+                .Where(t => stageNames.Contains(t.Entity.GameObjectName))
+                .ToDictionaryAsync(t => t.Entity.GameObjectName);
 
-            if (firstStageNpc != null)
+            foreach (var stage in allStages)
             {
-                transformations.Add(new TownNpcTransformationViewModel
-                {
-                    Name = gameObject.GameObjectName,
-                    Sprite = gameObject.Sprite,
-                    EntityId = firstStageNpc.EntityId.ToString(),
-                    Hp = firstStageNpc.Entity.Hp ?? 0,
-                    Defense = firstStageNpc.Entity.Defense
-                });
-            }
-
-            var current = gameObject.Transform;
-            while (current != null)
-            {
-                var npcAtStage = await _context.TownNpc
-                    .Include(t => t.Entity)
-                    .FirstOrDefaultAsync(t => t.Entity.GameObjectName == current.GameObjectName);
-
-                if (npcAtStage != null)
+                if (npcsAtStages.TryGetValue(stage.GameObjectName, out var npc))
                 {
                     transformations.Add(new TownNpcTransformationViewModel
                     {
-                        Name = current.GameObjectName,
-                        Sprite = current.Sprite,
-                        EntityId = npcAtStage.EntityId.ToString(),
-                        Hp = npcAtStage.Entity.Hp ?? 0,
-                        Defense = npcAtStage.Entity.Defense
+                        Name = stage.GameObjectName,
+                        Sprite = stage.Sprite,
+                        EntityId = npc.EntityId.ToString(),
+                        Hp = npc.Entity.Hp ?? 0,
+                        Defense = npc.Entity.Defense
                     });
                 }
-
-                current = current.Transform;
             }
 
             return transformations;
@@ -221,25 +257,6 @@ namespace TerrariaDB.Controllers.Terraria
             {
                 ModelState.AddModelError("", "At least one stage must be filled");
                 return View(viewModel);
-            }
-
-            foreach (var stage in filledStages)
-            {
-                if (stage.Hp < 0 || stage.Hp > 30000)
-                {
-                    ModelState.AddModelError("", "HP must be between 0 and 30000");
-                    return View(viewModel);
-                }
-                if (stage.Defense < 0 || stage.Defense > 10000)
-                {
-                    ModelState.AddModelError("", "Defense must be between 0 and 10000");
-                    return View(viewModel);
-                }
-                if (stage.EntityId < -500 || stage.EntityId > 1000)
-                {
-                    ModelState.AddModelError("", "Entity ID must be between -500 and 1000");
-                    return View(viewModel);
-                }
             }
 
             var allEntityIds = filledStages.Select(s => s.EntityId).ToList();
@@ -344,8 +361,8 @@ namespace TerrariaDB.Controllers.Terraria
                     {
                         EntityId = stage.EntityId,
                         GameObjectName = gameObject.GameObjectName,
-                        Hp = stage.Hp,
-                        Defense = (short)stage.Defense
+                        Hp = DefaultHp,
+                        Defense = (short)DefaultDefense
                     };
 
                     _context.Entity.Add(entity);
