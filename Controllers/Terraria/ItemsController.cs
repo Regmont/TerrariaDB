@@ -241,6 +241,22 @@ namespace TerrariaDB.Controllers.Terraria
                 ModelState.AddModelError("Stages", "At least first stage is required");
             }
 
+            var allSprites = validStages.Select(s => s.Stage.Sprite).ToList();
+            if (allSprites.Count != allSprites.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Sprites must be unique across all stages");
+                return View(viewModel);
+            }
+
+            foreach (var sprite in allSprites)
+            {
+                if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
+                {
+                    ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                    return View(viewModel);
+                }
+            }
+
             if (await _context.GameObject.AnyAsync(go => go.GameObjectName == viewModel.Name))
             {
                 ModelState.AddModelError("Name", "An item with this name already exists");

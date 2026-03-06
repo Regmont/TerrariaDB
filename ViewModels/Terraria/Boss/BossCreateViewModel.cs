@@ -21,7 +21,6 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
     {
         public string ItemId { get; set; } = string.Empty;
 
-        [Range(1, 150, ErrorMessage = "Quantity must be between 1 and 150")]
         public int Quantity { get; set; }
     }
 
@@ -34,7 +33,6 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
         [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
         public string? Description { get; set; } = string.Empty;
 
-        [Range(1, 50, ErrorMessage = "Quantity must be between 1 and 50")]
         public int Quantity { get; set; }
 
         public List<BossStageCreateViewModel> Stages { get; set; } = new();
@@ -46,16 +44,13 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
         [StringLength(500, ErrorMessage = "Sprite path cannot exceed 500 characters")]
         public string Sprite { get; set; } = string.Empty;
 
-        [Range(0, 150000, ErrorMessage = "HP must be between 0 and 150,000")]
         public int Hp { get; set; }
 
-        [Range(0, 100, ErrorMessage = "Defense must be between 0 and 100")]
         public int Defense { get; set; }
 
         [Range(-500, 1000, ErrorMessage = "Entity ID must be between -500 and 1000")]
         public short EntityId { get; set; }
 
-        [Range(0, 500, ErrorMessage = "Contact damage must be between 0 and 500")]
         public int ContactDamage { get; set; }
 
         public List<BossStageEnemyCreateViewModel> SpawnedEnemies { get; set; } = new();
@@ -66,7 +61,6 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
     {
         public string EnemyId { get; set; } = string.Empty;
 
-        [Range(1, 50, ErrorMessage = "Quantity must be between 1 and 50")]
         public int Quantity { get; set; }
     }
 
@@ -74,7 +68,6 @@ namespace TerrariaDB.ViewModels.Terraria.Boss
     {
         public string ItemId { get; set; } = string.Empty;
 
-        [Range(1, 50, ErrorMessage = "Quantity must be between 1 and 50")]
         public int Quantity { get; set; }
     }
 }

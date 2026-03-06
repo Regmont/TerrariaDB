@@ -57,16 +57,49 @@ namespace TerrariaDB.Controllers.Terraria
                 return NotFound();
             }
 
+            var rootEnemy = await FindRootEnemy(enemy);
+
             var viewModel = new EnemyDetailsViewModel
             {
-                EnemyId = enemy.EnemyId.ToString(),
-                Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
-                Description = enemy.HostileEntity.Entity.GameObject.Description ?? string.Empty,
-                Sprite = enemy.HostileEntity.Entity.GameObject.Sprite,
-                Transformations = await GetTransformations(enemy.HostileEntity.Entity.GameObject)
+                EnemyId = rootEnemy.EnemyId.ToString(),
+                Name = rootEnemy.HostileEntity.Entity.GameObject.GameObjectName,
+                Description = rootEnemy.HostileEntity.Entity.GameObject.Description ?? string.Empty,
+                Sprite = rootEnemy.HostileEntity.Entity.GameObject.Sprite,
+                Transformations = await GetTransformations(rootEnemy.HostileEntity.Entity.GameObject)
             };
 
             return View(viewModel);
+        }
+
+        private async Task<Enemy> FindRootEnemy(Enemy enemy)
+        {
+            var currentEnemy = enemy;
+            var allGameObjects = await _context.GameObject
+                .Include(g => g.TransformedFrom)
+                .ToListAsync();
+
+            while (true)
+            {
+                var gameObject = currentEnemy.HostileEntity.Entity.GameObject;
+                if (gameObject.TransformedFrom == null)
+                {
+                    return currentEnemy;
+                }
+
+                var previousGameObjectName = gameObject.TransformedFrom.GameObjectName;
+                var previousEnemy = await _context.Enemy
+                    .Include(e => e.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(en => en.GameObject)
+                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == previousGameObjectName);
+
+                if (previousEnemy == null)
+                {
+                    return currentEnemy;
+                }
+
+                currentEnemy = previousEnemy;
+            }
         }
 
         private async Task<List<EnemyTransformationViewModel>> GetTransformations(GameObject gameObject)
@@ -175,12 +208,23 @@ namespace TerrariaDB.Controllers.Terraria
                 })
                 .ToList();
 
+            for (int i = 1; i < viewModel.Stages.Count; i++)
+            {
+                if (string.IsNullOrEmpty(viewModel.Stages[i].Sprite))
+                {
+                    ModelState.Remove($"Stages[{i}].Sprite");
+                    ModelState.Remove($"Stages[{i}].EntityId");
+                    ModelState.Remove($"Stages[{i}].Hp");
+                    ModelState.Remove($"Stages[{i}].Defense");
+                    ModelState.Remove($"Stages[{i}].ContactDamage");
+                }
+            }
+
             for (int i = 0; i < viewModel.Stages.Count; i++)
             {
                 for (int j = 0; j < viewModel.Stages[i].Drops.Count; j++)
                 {
                     var drop = viewModel.Stages[i].Drops[j];
-
                     if (string.IsNullOrEmpty(drop.ItemId) || drop.Quantity <= 0)
                     {
                         ModelState.Remove($"Stages[{i}].Drops[{j}].ItemId");
@@ -189,73 +233,101 @@ namespace TerrariaDB.Controllers.Terraria
                 }
             }
 
-            for (int i = 1; i < viewModel.Stages.Count; i++)
+            var filledStages = viewModel.Stages
+                .Where(s => !string.IsNullOrEmpty(s.Sprite))
+                .ToList();
+
+            if (!filledStages.Any())
             {
-                if (string.IsNullOrEmpty(viewModel.Stages[i].Sprite))
+                ModelState.AddModelError("", "At least one stage must be filled");
+                return View(viewModel);
+            }
+
+            if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+            {
+                ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
+                return View(viewModel);
+            }
+
+            var filledSprites = filledStages.Select(s => s.Sprite).ToList();
+            if (filledSprites.Count != filledSprites.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Sprites must be unique across all stages");
+                return View(viewModel);
+            }
+
+            foreach (var sprite in filledSprites)
+            {
+                if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
                 {
-                    ModelState.Remove($"Stages[{i}].Sprite");
-                    ModelState.Remove($"Stages[{i}].EntityId");
+                    ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
+                    return View(viewModel);
+                }
+            }
+
+            var filledEntityIds = filledStages.Select(s => s.EntityId).ToList();
+            if (filledEntityIds.Count != filledEntityIds.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Entity IDs must be unique across all stages");
+                return View(viewModel);
+            }
+
+            foreach (var entityId in filledEntityIds)
+            {
+                if (await _context.Entity.AnyAsync(e => e.EntityId == entityId))
+                {
+                    ModelState.AddModelError("", $"Entity ID {entityId} is already in use");
+                    return View(viewModel);
+                }
+            }
+
+            var filledGameObjectNames = filledStages
+                .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
+                .ToList();
+
+            foreach (var name in filledGameObjectNames)
+            {
+                if (await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
+                {
+                    ModelState.AddModelError("", $"Game object with name '{name}' already exists");
+                    return View(viewModel);
+                }
+            }
+
+            for (int i = 0; i < filledStages.Count; i++)
+            {
+                var stage = filledStages[i];
+                var validDrops = stage.Drops
+                    .Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0)
+                    .ToList();
+
+                var duplicateDrops = validDrops
+                    .GroupBy(d => d.ItemId)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (duplicateDrops.Any())
+                {
+                    var duplicateItemNames = await _context.Item
+                        .Include(i => i.GameObject)
+                        .Where(i => duplicateDrops.Select(id => short.Parse(id)).Contains(i.ItemId))
+                        .Select(i => i.GameObject.GameObjectName)
+                        .ToListAsync();
+
+                    foreach (var itemName in duplicateItemNames)
+                    {
+                        ModelState.AddModelError("", $"Stage {i + 1}: Item '{itemName}' appears multiple times in drops");
+                    }
+                    return View(viewModel);
                 }
             }
 
             if (ModelState.IsValid)
             {
-                if (string.IsNullOrEmpty(viewModel.Stages[0].Sprite))
+                for (int i = 0; i < filledStages.Count; i++)
                 {
-                    ModelState.AddModelError("Stages[0].Sprite", "Sprite for first stage is required");
-                    return View(viewModel);
-                }
-
-                var allSprites = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select(s => s.Sprite)
-                    .ToList();
-
-                foreach (var sprite in allSprites)
-                {
-                    if (await _context.GameObject.AnyAsync(go => go.Sprite == sprite))
-                    {
-                        ModelState.AddModelError("", $"Sprite '{sprite}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var allEntityIds = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select(s => s.EntityId)
-                    .ToList();
-
-                if (allEntityIds.Count != allEntityIds.Distinct().Count())
-                {
-                    ModelState.AddModelError("", "Entity IDs must be unique across all stages");
-                    return View(viewModel);
-                }
-
-                var allGameObjectNames = viewModel.Stages
-                    .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                    .Select((s, index) => index == 0 ? viewModel.Name : $"{viewModel.Name}_{index + 1}")
-                    .ToList();
-
-                foreach (var name in allGameObjectNames)
-                {
-                    if (await _context.GameObject.AnyAsync(go => go.GameObjectName == name))
-                    {
-                        ModelState.AddModelError("", $"Game object with name '{name}' already exists");
-                        return View(viewModel);
-                    }
-                }
-
-                var filledStages = viewModel.Stages
-                .Where(s => !string.IsNullOrEmpty(s.Sprite))
-                .ToList();
-
-                for (int i = 0; i < viewModel.Stages.Count; i++)
-                {
-                    var stage = viewModel.Stages[i];
-
-                    if (string.IsNullOrEmpty(stage.Sprite))
-                        continue;
-
+                    var stage = filledStages[i];
                     var gameObjectName = i == 0 ? viewModel.Name : $"{viewModel.Name}_{i + 1}";
                     var nextGameObjectName = i < filledStages.Count - 1 ? $"{viewModel.Name}_{i + 2}" : null;
 
@@ -611,6 +683,7 @@ namespace TerrariaDB.Controllers.Terraria
                 .Include(e => e.HostileEntity)
                     .ThenInclude(he => he.Entity)
                         .ThenInclude(en => en.GameObject)
+                            .ThenInclude(g => g.TransformedFrom)
                 .FirstOrDefaultAsync(e => e.EnemyId == id);
 
             if (enemy == null)
@@ -618,11 +691,13 @@ namespace TerrariaDB.Controllers.Terraria
                 return NotFound();
             }
 
+            var rootEnemy = await FindRootEnemy(enemy);
+
             var viewModel = new EnemyDeleteViewModel
             {
-                EnemyId = enemy.EnemyId.ToString(),
-                Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
-                Sprite = enemy.HostileEntity.Entity.GameObject.Sprite
+                EnemyId = rootEnemy.EnemyId.ToString(),
+                Name = rootEnemy.HostileEntity.Entity.GameObject.GameObjectName,
+                Sprite = rootEnemy.HostileEntity.Entity.GameObject.Sprite
             };
 
             return View(viewModel);
@@ -654,7 +729,7 @@ namespace TerrariaDB.Controllers.Terraria
             var allGameObjects = new List<GameObject>();
             var allEnemies = new List<Enemy>();
 
-            await CollectEnemyData(enemy, allBossPartEnemies, allEntityDrops, allGameObjects, allEnemies);
+            await CollectAllEnemyData(enemy, allBossPartEnemies, allEntityDrops, allGameObjects, allEnemies);
 
             _context.BossPartEnemies.RemoveRange(allBossPartEnemies);
             _context.EntityDrop.RemoveRange(allEntityDrops);
@@ -670,34 +745,34 @@ namespace TerrariaDB.Controllers.Terraria
             return RedirectToAction(nameof(Index));
         }
 
-        private async Task CollectEnemyData(Enemy enemy,
+        private async Task CollectAllEnemyData(Enemy rootEnemy,
             List<BossPartEnemies> bossPartEnemies,
             List<EntityDrop> entityDrops,
             List<GameObject> gameObjects,
             List<Enemy> enemies)
         {
-            var current = enemy.HostileEntity.Entity.GameObject;
+            var currentEnemy = rootEnemy;
 
-            while (current != null && !gameObjects.Contains(current))
+            while (currentEnemy != null && !enemies.Contains(currentEnemy))
             {
-                gameObjects.Add(current);
+                enemies.Add(currentEnemy);
 
-                var enemyAtStage = await _context.Enemy
-                    .Include(e => e.BossPartEnemies)
+                var gameObject = currentEnemy.HostileEntity.Entity.GameObject;
+                gameObjects.Add(gameObject);
+
+                bossPartEnemies.AddRange(currentEnemy.BossPartEnemies);
+                entityDrops.AddRange(currentEnemy.HostileEntity.Entity.EntityDrops);
+
+                var nextGameObjectName = gameObject.TransformName;
+                if (nextGameObjectName == null)
+                    break;
+
+                currentEnemy = await _context.Enemy
                     .Include(e => e.HostileEntity)
                         .ThenInclude(he => he.Entity)
-                            .ThenInclude(en => en.EntityDrops)
-                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
-
-                if (enemyAtStage != null)
-                {
-                    bossPartEnemies.AddRange(enemyAtStage.BossPartEnemies);
-                    entityDrops.AddRange(enemyAtStage.HostileEntity.Entity.EntityDrops);
-                    enemies.Add(enemyAtStage);
-                }
-
-                current = await _context.GameObject
-                    .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
+                            .ThenInclude(en => en.GameObject)
+                    .Include(e => e.BossPartEnemies)
+                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == nextGameObjectName);
             }
         }
     }

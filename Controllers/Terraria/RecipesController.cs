@@ -178,12 +178,51 @@ namespace TerrariaDB.Controllers.Terraria
                 }
             }
 
-            if (ModelState.IsValid)
+            var validIngredients = viewModel.Ingredients
+                .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
+                .ToList();
+
+            var duplicateIngredients = validIngredients
+                .GroupBy(i => i.ItemId)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateIngredients.Any())
             {
-                var validIngredients = viewModel.Ingredients
-                    .Where(i => !string.IsNullOrEmpty(i.ItemId) && i.Quantity > 0)
+                var duplicateItemNames = _context.Item
+                    .Include(i => i.GameObject)
+                    .Where(i => duplicateIngredients.Select(id => short.Parse(id)).Contains(i.ItemId))
+                    .Select(i => i.GameObject.GameObjectName)
                     .ToList();
 
+                foreach (var itemName in duplicateItemNames)
+                {
+                    ModelState.AddModelError("", $"Item '{itemName}' appears multiple times in ingredients");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(viewModel.ResultItemId))
+            {
+                var resultItemId = short.Parse(viewModel.ResultItemId);
+
+                var selfIngredient = validIngredients
+                    .FirstOrDefault(i => short.Parse(i.ItemId) == resultItemId);
+
+                if (selfIngredient != null)
+                {
+                    var resultItemName = await _context.Item
+                        .Include(i => i.GameObject)
+                        .Where(i => i.ItemId == resultItemId)
+                        .Select(i => i.GameObject.GameObjectName)
+                        .FirstOrDefaultAsync();
+
+                    ModelState.AddModelError("", $"Cannot use the result item '{resultItemName}' as an ingredient");
+                }
+            }
+
+            if (ModelState.IsValid)
+            {
                 var ingredientIds = validIngredients
                     .Select(i => short.Parse(i.ItemId))
                     .OrderBy(id => id)
@@ -227,6 +266,7 @@ namespace TerrariaDB.Controllers.Terraria
 
                 return RedirectToAction(nameof(Index));
             }
+
             return View(viewModel);
         }
 

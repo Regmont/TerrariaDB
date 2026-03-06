@@ -21,21 +21,52 @@ namespace TerrariaDB.Controllers.Terraria
         public async Task<IActionResult> Index()
         {
             var bosses = await _context.Boss
-                .Select(b => new BossItemViewModel
+                .Include(b => b.BossParts)
+                    .ThenInclude(bp => bp.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(e => e.GameObject)
+                                .ThenInclude(g => g.TransformedFrom)
+                .ToListAsync();
+
+            var bossViewModels = bosses.Select(b =>
+            {
+                var firstPart = b.BossParts.FirstOrDefault();
+                if (firstPart?.HostileEntity?.Entity?.GameObject == null)
+                {
+                    return new BossItemViewModel
+                    {
+                        Name = b.BossName,
+                        Sprite = string.Empty
+                    };
+                }
+
+                var rootGameObject = GetRootStage(firstPart.HostileEntity.Entity.GameObject);
+
+                return new BossItemViewModel
                 {
                     Name = b.BossName,
-                    Sprite = b.BossParts
-                        .Select(bp => bp.HostileEntity.Entity.GameObject)
-                        .FirstOrDefault()!.Sprite
-                })
-                .ToListAsync();
+                    Sprite = rootGameObject?.Sprite ?? string.Empty
+                };
+            }).ToList();
 
             var viewModel = new BossIndexViewModel
             {
-                Bosses = bosses
+                Bosses = bossViewModels
             };
 
             return View(viewModel);
+        }
+
+        private GameObject? GetRootStage(GameObject? gameObject)
+        {
+            if (gameObject == null) return null;
+
+            var current = gameObject;
+            while (current.TransformedFrom != null)
+            {
+                current = current.TransformedFrom;
+            }
+            return current;
         }
 
         // GET: Bosses/Details/5
@@ -80,7 +111,6 @@ namespace TerrariaDB.Controllers.Terraria
                 BossParts = new List<BossPartViewModel>()
             };
 
-            // Группируем BossPart по имени части (без _N)
             var groupedParts = boss.BossParts
                 .GroupBy(bp => {
                     var fullName = bp.HostileEntity.Entity.GameObject.GameObjectName;
@@ -139,76 +169,6 @@ namespace TerrariaDB.Controllers.Terraria
             }
 
             return View(viewModel);
-        }
-
-        private async Task<List<BossStageViewModel>> GetStages(BossPart bossPart)
-        {
-            var stages = new List<BossStageViewModel>();
-
-            var allGameObjects = await _context.GameObject
-                .Include(g => g.Transform)
-                .Include(g => g.TransformedFrom)
-                .ToListAsync();
-
-            var firstStage = bossPart.HostileEntity.Entity.GameObject;
-            while (firstStage.TransformedFrom != null)
-            {
-                firstStage = firstStage.TransformedFrom;
-            }
-
-            var current = firstStage;
-            while (current != null)
-            {
-                var entityAtStage = await _context.Entity
-                    .Include(e => e.EntityDrops)
-                        .ThenInclude(ed => ed.Item)
-                            .ThenInclude(i => i.GameObject)
-                    .FirstOrDefaultAsync(e => e.GameObjectName == current.GameObjectName);
-
-                var enemyAtStage = await _context.Enemy
-                    .Include(e => e.HostileEntity)
-                        .ThenInclude(he => he.Entity)
-                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == current.GameObjectName);
-
-                var bossPartEnemiesAtStage = new List<BossPartEnemies>();
-                if (enemyAtStage != null)
-                {
-                    bossPartEnemiesAtStage = await _context.BossPartEnemies
-                        .Include(bpe => bpe.Enemy)
-                            .ThenInclude(e => e.HostileEntity)
-                                .ThenInclude(he => he.Entity)
-                                    .ThenInclude(en => en.GameObject)
-                        .Where(bpe => bpe.BossPartId == bossPart.BossPartId &&
-                                     bpe.EnemyId == enemyAtStage.EnemyId)
-                        .ToListAsync();
-                }
-
-                stages.Add(new BossStageViewModel
-                {
-                    Name = current.GameObjectName,
-                    Sprite = current.Sprite,
-                    EntityId = entityAtStage?.EntityId.ToString() ?? string.Empty,
-                    Hp = entityAtStage?.Hp ?? 0,
-                    Defense = entityAtStage?.Defense ?? 0,
-                    ContactDamage = bossPart.HostileEntity.ContactDamage,
-                    SummonedEnemies = bossPartEnemiesAtStage.Select(bpe => new BossStageEnemyViewModel
-                    {
-                        Name = bpe.Enemy.HostileEntity.Entity.GameObject.GameObjectName,
-                        Sprite = bpe.Enemy.HostileEntity.Entity.GameObject.Sprite,
-                        Quantity = bpe.Quantity
-                    }).ToList(),
-                    Drops = entityAtStage?.EntityDrops.Select(ed => new BossStageDropViewModel
-                    {
-                        Name = ed.Item.GameObject.GameObjectName,
-                        Sprite = ed.Item.GameObject.Sprite,
-                        Quantity = ed.Quantity
-                    }).ToList() ?? new List<BossStageDropViewModel>()
-                });
-
-                current = current.Transform;
-            }
-
-            return stages;
         }
 
         // GET: Bosses/Create
@@ -414,6 +374,31 @@ namespace TerrariaDB.Controllers.Terraria
                     return View(viewModel);
                 }
 
+                var validBossDrops = viewModel.BossDrops
+                    .Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0)
+                    .ToList();
+
+                var duplicateBossDrops = validBossDrops
+                    .GroupBy(d => d.ItemId)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (duplicateBossDrops.Any())
+                {
+                    var duplicateItemNames = await _context.Item
+                        .Include(i => i.GameObject)
+                        .Where(i => duplicateBossDrops.Select(id => short.Parse(id)).Contains(i.ItemId))
+                        .Select(i => i.GameObject.GameObjectName)
+                        .ToListAsync();
+
+                    foreach (var itemName in duplicateItemNames)
+                    {
+                        ModelState.AddModelError("", $"Boss drop: Item '{itemName}' appears multiple times");
+                    }
+                    return View(viewModel);
+                }
+
                 var allGameObjectNames = new List<string>();
                 var allSprites = new List<string>();
                 var allEntityIds = new List<int>();
@@ -450,6 +435,66 @@ namespace TerrariaDB.Controllers.Terraria
                         if (stage.EntityId < -500 || stage.EntityId > 1000)
                         {
                             ModelState.AddModelError("", "Entity ID must be between -500 and 1000");
+                            return View(viewModel);
+                        }
+                    }
+
+                    for (int stageIndex = 0; stageIndex < filledStages.Count; stageIndex++)
+                    {
+                        var stage = filledStages[stageIndex];
+                        var validStageDrops = stage.Drops
+                            .Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0)
+                            .ToList();
+
+                        var duplicateStageDrops = validStageDrops
+                            .GroupBy(d => d.ItemId)
+                            .Where(g => g.Count() > 1)
+                            .Select(g => g.Key)
+                            .ToList();
+
+                        if (duplicateStageDrops.Any())
+                        {
+                            var duplicateItemNames = await _context.Item
+                                .Include(i => i.GameObject)
+                                .Where(i => duplicateStageDrops.Select(id => short.Parse(id)).Contains(i.ItemId))
+                                .Select(i => i.GameObject.GameObjectName)
+                                .ToListAsync();
+
+                            foreach (var itemName in duplicateItemNames)
+                            {
+                                ModelState.AddModelError("", $"Part '{part.PartName}', Stage {stageIndex + 1}: Item '{itemName}' appears multiple times in drops");
+                            }
+                            return View(viewModel);
+                        }
+                    }
+
+                    for (int stageIndex = 0; stageIndex < filledStages.Count; stageIndex++)
+                    {
+                        var stage = filledStages[stageIndex];
+                        var validSpawnedEnemies = stage.SpawnedEnemies
+                            .Where(e => !string.IsNullOrEmpty(e.EnemyId) && e.Quantity > 0)
+                            .ToList();
+
+                        var duplicateSpawnedEnemies = validSpawnedEnemies
+                            .GroupBy(e => e.EnemyId)
+                            .Where(g => g.Count() > 1)
+                            .Select(g => g.Key)
+                            .ToList();
+
+                        if (duplicateSpawnedEnemies.Any())
+                        {
+                            var duplicateEnemyNames = await _context.Enemy
+                                .Include(e => e.HostileEntity)
+                                    .ThenInclude(he => he.Entity)
+                                        .ThenInclude(en => en.GameObject)
+                                .Where(e => duplicateSpawnedEnemies.Select(id => short.Parse(id)).Contains(e.EnemyId))
+                                .Select(e => e.HostileEntity.Entity.GameObject.GameObjectName)
+                                .ToListAsync();
+
+                            foreach (var enemyName in duplicateEnemyNames)
+                            {
+                                ModelState.AddModelError("", $"Part '{part.PartName}', Stage {stageIndex + 1}: Enemy '{enemyName}' appears multiple times in spawned enemies");
+                            }
                             return View(viewModel);
                         }
                     }
@@ -518,7 +563,7 @@ namespace TerrariaDB.Controllers.Terraria
 
                 _context.Boss.Add(boss);
 
-                foreach (var drop in viewModel.BossDrops.Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0))
+                foreach (var drop in validBossDrops)
                 {
                     var bossDrop = new BossDrop
                     {
@@ -1259,7 +1304,7 @@ namespace TerrariaDB.Controllers.Terraria
 
                 var nextGameObject = await _context.GameObject
                     .Include(go => go.Entity)
-                        .ThenInclude(e => e.EntityDrops)
+                        .ThenInclude(e => e!.EntityDrops)
                     .FirstOrDefaultAsync(go => go.GameObjectName == current.TransformName);
 
                 if (nextGameObject?.Entity != null)

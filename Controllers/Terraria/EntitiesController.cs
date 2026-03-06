@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TerrariaDB.Data;
+using TerrariaDB.Models.Terraria;
 using TerrariaDB.ViewModels.Terraria.Entity;
 
 namespace TerrariaDB.Controllers.Terraria
@@ -29,32 +30,46 @@ namespace TerrariaDB.Controllers.Terraria
                     TypeId = bp.BossName
                 })
                 .ToListAsync();
+            entities.AddRange(bosses);
 
             var enemies = await _context.Enemy
-                .Select(e => new EntityItemViewModel
-                {
-                    Id = e.HostileEntity.Entity.EntityId.ToString(),
-                    Name = e.HostileEntity.Entity.GameObject.GameObjectName,
-                    Sprite = e.HostileEntity.Entity.GameObject.Sprite,
-                    Type = "Enemy",
-                    TypeId = e.EnemyId.ToString()
-                })
+                .Include(e => e.HostileEntity)
+                    .ThenInclude(he => he.Entity)
+                        .ThenInclude(en => en.GameObject)
+                            .ThenInclude(g => g.TransformedFrom)
                 .ToListAsync();
+
+            foreach (var enemy in enemies)
+            {
+                var rootEnemy = await FindRootEnemy(enemy);
+                entities.Add(new EntityItemViewModel
+                {
+                    Id = enemy.HostileEntity.Entity.EntityId.ToString(),
+                    Name = enemy.HostileEntity.Entity.GameObject.GameObjectName,
+                    Sprite = enemy.HostileEntity.Entity.GameObject.Sprite,
+                    Type = "Enemy",
+                    TypeId = rootEnemy.EnemyId.ToString()
+                });
+            }
 
             var townNpcs = await _context.TownNpc
-                .Select(t => new EntityItemViewModel
-                {
-                    Id = t.Entity.EntityId.ToString(),
-                    Name = t.Entity.GameObject.GameObjectName,
-                    Sprite = t.Entity.GameObject.Sprite,
-                    Type = "TownNpc",
-                    TypeId = t.TownNpcId.ToString()
-                })
+                .Include(t => t.Entity)
+                    .ThenInclude(e => e.GameObject)
+                        .ThenInclude(g => g.TransformedFrom)
                 .ToListAsync();
 
-            entities.AddRange(bosses);
-            entities.AddRange(enemies);
-            entities.AddRange(townNpcs);
+            foreach (var townNpc in townNpcs)
+            {
+                var rootTownNpc = await FindRootTownNpc(townNpc);
+                entities.Add(new EntityItemViewModel
+                {
+                    Id = townNpc.Entity.EntityId.ToString(),
+                    Name = townNpc.Entity.GameObject.GameObjectName,
+                    Sprite = townNpc.Entity.GameObject.Sprite,
+                    Type = "TownNpc",
+                    TypeId = rootTownNpc.TownNpcId.ToString()
+                });
+            }
 
             var viewModel = new EntityIndexViewModel
             {
@@ -62,6 +77,61 @@ namespace TerrariaDB.Controllers.Terraria
             };
 
             return View(viewModel);
+        }
+
+        private async Task<Enemy> FindRootEnemy(Enemy enemy)
+        {
+            var currentEnemy = enemy;
+
+            while (true)
+            {
+                var gameObject = currentEnemy.HostileEntity.Entity.GameObject;
+                if (gameObject.TransformedFrom == null)
+                {
+                    return currentEnemy;
+                }
+
+                var previousGameObjectName = gameObject.TransformedFrom.GameObjectName;
+                var previousEnemy = await _context.Enemy
+                    .Include(e => e.HostileEntity)
+                        .ThenInclude(he => he.Entity)
+                            .ThenInclude(en => en.GameObject)
+                    .FirstOrDefaultAsync(e => e.HostileEntity.Entity.GameObjectName == previousGameObjectName);
+
+                if (previousEnemy == null)
+                {
+                    return currentEnemy;
+                }
+
+                currentEnemy = previousEnemy;
+            }
+        }
+
+        private async Task<TownNpc> FindRootTownNpc(TownNpc townNpc)
+        {
+            var currentTownNpc = townNpc;
+
+            while (true)
+            {
+                var gameObject = currentTownNpc.Entity.GameObject;
+                if (gameObject.TransformedFrom == null)
+                {
+                    return currentTownNpc;
+                }
+
+                var previousGameObjectName = gameObject.TransformedFrom.GameObjectName;
+                var previousTownNpc = await _context.TownNpc
+                    .Include(t => t.Entity)
+                        .ThenInclude(e => e.GameObject)
+                    .FirstOrDefaultAsync(t => t.Entity.GameObjectName == previousGameObjectName);
+
+                if (previousTownNpc == null)
+                {
+                    return currentTownNpc;
+                }
+
+                currentTownNpc = previousTownNpc;
+            }
         }
     }
 }

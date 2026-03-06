@@ -666,3 +666,7 @@ body {
         justify-content: flex-start;
     }
 }
+
+.validation-message {
+    color: #f0e0c0;
+}

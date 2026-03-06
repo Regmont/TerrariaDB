@@ -9,7 +9,6 @@ namespace TerrariaDB.ViewModels.Terraria.Recipe
         public string ResultItemId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Result quantity is required")]
-        [Range(1, 100, ErrorMessage = "Result quantity must be between 1 and 100")]
         public short ResultItemQuantity { get; set; }
 
         public string? CraftingStationName { get; set; }
@@ -25,7 +24,6 @@ namespace TerrariaDB.ViewModels.Terraria.Recipe
     {
         public string ItemId { get; set; } = string.Empty;
 
-        [Range(1, 10000, ErrorMessage = "Quantity must be between 1 and 10000")]
         public int Quantity { get; set; }
     }
 

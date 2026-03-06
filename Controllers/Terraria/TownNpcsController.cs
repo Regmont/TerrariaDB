@@ -63,7 +63,9 @@ namespace TerrariaDB.Controllers.Terraria
                 return NotFound();
             }
 
-            var allStages = await GetAllStages(townNpc.Entity.GameObject);
+            var rootTownNpc = await FindRootTownNpc(townNpc);
+
+            var allStages = await GetAllStages(rootTownNpc.Entity.GameObject);
             var allStageNames = allStages.Select(s => s.GameObjectName).ToList();
 
             var allNpcs = await _context.TownNpc
@@ -103,19 +105,49 @@ namespace TerrariaDB.Controllers.Terraria
 
             var viewModel = new TownNpcDetailsViewModel
             {
-                TownNpcId = townNpc.TownNpcId.ToString(),
-                Name = townNpc.Entity.GameObject.GameObjectName,
-                Description = townNpc.Entity.GameObject.Description ?? string.Empty,
-                Sprite = townNpc.Entity.GameObject.Sprite,
-                EntityId = townNpc.EntityId.ToString(),
-                Hp = townNpc.Entity.Hp ?? 0,
-                Defense = townNpc.Entity.Defense,
+                TownNpcId = rootTownNpc.TownNpcId.ToString(),
+                Name = rootTownNpc.Entity.GameObject.GameObjectName,
+                Description = rootTownNpc.Entity.GameObject.Description ?? string.Empty,
+                Sprite = rootTownNpc.Entity.GameObject.Sprite,
+                EntityId = rootTownNpc.EntityId.ToString(),
+                Hp = rootTownNpc.Entity.Hp ?? 0,
+                Defense = rootTownNpc.Entity.Defense,
                 Drops = allDrops,
                 Trades = allTrades,
-                Transformations = await GetTransformations(townNpc.Entity.GameObject)
+                Transformations = await GetTransformations(rootTownNpc.Entity.GameObject)
             };
 
             return View(viewModel);
+        }
+
+        private async Task<TownNpc> FindRootTownNpc(TownNpc townNpc)
+        {
+            var currentTownNpc = townNpc;
+            var allGameObjects = await _context.GameObject
+                .Include(g => g.TransformedFrom)
+                .ToListAsync();
+
+            while (true)
+            {
+                var gameObject = currentTownNpc.Entity.GameObject;
+                if (gameObject.TransformedFrom == null)
+                {
+                    return currentTownNpc;
+                }
+
+                var previousGameObjectName = gameObject.TransformedFrom.GameObjectName;
+                var previousTownNpc = await _context.TownNpc
+                    .Include(t => t.Entity)
+                        .ThenInclude(e => e.GameObject)
+                    .FirstOrDefaultAsync(t => t.Entity.GameObjectName == previousGameObjectName);
+
+                if (previousTownNpc == null)
+                {
+                    return currentTownNpc;
+                }
+
+                currentTownNpc = previousTownNpc;
+            }
         }
 
         private async Task<List<GameObject>> GetAllStages(GameObject gameObject)
@@ -298,6 +330,12 @@ namespace TerrariaDB.Controllers.Terraria
                 }
             }
 
+            if (allSprites.Count != allSprites.Distinct().Count())
+            {
+                ModelState.AddModelError("", "Sprites must be unique across all stages");
+                return View(viewModel);
+            }
+
             var validTrades = viewModel.Trades
                 .Where(t => !string.IsNullOrEmpty(t.ItemId) && !string.IsNullOrEmpty(t.TradeType) && t.Quantity > 0)
                 .ToList();
@@ -306,6 +344,31 @@ namespace TerrariaDB.Controllers.Terraria
             if (tradeKeys.Count != tradeKeys.Distinct().Count())
             {
                 ModelState.AddModelError("", "Duplicate trades (same item and trade type) are not allowed");
+                return View(viewModel);
+            }
+
+            var validDrops = viewModel.Drops
+                .Where(d => !string.IsNullOrEmpty(d.ItemId) && d.Quantity > 0)
+                .ToList();
+
+            var duplicateDrops = validDrops
+                .GroupBy(d => d.ItemId)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateDrops.Any())
+            {
+                var duplicateItemNames = await _context.Item
+                    .Include(i => i.GameObject)
+                    .Where(i => duplicateDrops.Select(id => short.Parse(id)).Contains(i.ItemId))
+                    .Select(i => i.GameObject.GameObjectName)
+                    .ToListAsync();
+
+                foreach (var itemName in duplicateItemNames)
+                {
+                    ModelState.AddModelError("", $"Item '{itemName}' appears multiple times in drops");
+                }
                 return View(viewModel);
             }
 
@@ -790,6 +853,7 @@ namespace TerrariaDB.Controllers.Terraria
             var townNpc = await _context.TownNpc
                 .Include(t => t.Entity)
                     .ThenInclude(e => e.GameObject)
+                        .ThenInclude(g => g.TransformedFrom)
                 .FirstOrDefaultAsync(t => t.TownNpcId == id);
 
             if (townNpc == null)
@@ -797,11 +861,13 @@ namespace TerrariaDB.Controllers.Terraria
                 return NotFound();
             }
 
+            var rootTownNpc = await FindRootTownNpc(townNpc);
+
             var viewModel = new TownNpcDeleteViewModel
             {
-                TownNpcId = townNpc.TownNpcId.ToString(),
-                Name = townNpc.Entity.GameObject.GameObjectName,
-                Sprite = townNpc.Entity.GameObject.Sprite
+                TownNpcId = rootTownNpc.TownNpcId.ToString(),
+                Name = rootTownNpc.Entity.GameObject.GameObjectName,
+                Sprite = rootTownNpc.Entity.GameObject.Sprite
             };
 
             return View(viewModel);

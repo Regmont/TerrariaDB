@@ -67,11 +67,8 @@
                                         </div>
                                         <div class="form-group" style="margin-bottom: 15px;">
                                             <div class="label-text">Quantity</div>
-                                            <input asp-for="Ingredients[i].Quantity" type="number" placeholder="Qty" min="1" max="10000" value="1" data-val="@(i == 0 ? "true" : "false")" />
-                                            @if (i == 0)
-                                            {
-                                                <span asp-validation-for="Ingredients[i].Quantity" class="validation-message"></span>
-                                            }
+                                            <input asp-for="Ingredients[i].Quantity" type="number" placeholder="Qty" min="1" max="10000" value="1" />
+                                            <span asp-validation-for="Ingredients[i].Quantity" class="validation-message"></span>
                                         </div>
                                         <button type="button" class="table-btn table-btn-sm w-100 clear-ingredient" data-index="@i">Clear</button>
                                     </div>

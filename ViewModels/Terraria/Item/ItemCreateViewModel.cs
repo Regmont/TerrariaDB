@@ -6,7 +6,6 @@ namespace TerrariaDB.ViewModels.Terraria.Item
     public class ItemCreateViewModel
     {
         [Required(ErrorMessage = "First item ID is required")]
-        [Range(0, 10000, ErrorMessage = "Item ID must be between 0 and 10000")]
         public short FirstItemId { get; set; }
 
         public short? SecondItemId { get; set; }
@@ -18,10 +17,9 @@ namespace TerrariaDB.ViewModels.Terraria.Item
         public string Name { get; set; } = string.Empty;
 
         [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Base price is required")]
-        [Range(0, 500000000, ErrorMessage = "Base price must be between 0 and 500,000,000")]
         public int BasePrice { get; set; }
 
         [Required(ErrorMessage = "Currency type is required")]
