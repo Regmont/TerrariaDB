@@ -325,18 +325,6 @@ namespace TerrariaDB.Controllers.Terraria
                 }
             }
 
-            foreach (var modelStateKey in ModelState.Keys)
-            {
-                var modelStateVal = ModelState[modelStateKey];
-                if (modelStateVal?.Errors.Count > 0)
-                {
-                    foreach (var error in modelStateVal.Errors)
-                    {
-                        Console.WriteLine($"Key: {modelStateKey}, Error: {error.ErrorMessage}");
-                    }
-                }
-            }
-
             if (ModelState.IsValid)
             {
                 if (string.IsNullOrEmpty(viewModel.BossName))
