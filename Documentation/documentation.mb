@@ -1,0 +1,376 @@
+# Degree, Cardinality and Optionality
+Note: M – Mandatory, O – Optional
+
+1)	Boss is summoned by Item (1:1, O-O)  
+— A boss is summoned by one item;  
+— An item summons one boss;  
+— Not every boss can be summoned by an item;  
+— Not every item summons a boss.  
+
+2)	Boss drops Item (N:M, O-O)  
+— A boss drops many items;  
+— An item is dropped by many bosses;  
+— Not every boss drops an item;  
+— Not every item is dropped by a boss.  
+
+3)	Boss has Boss Part (1:N, O-M)  
+— A boss has many parts;  
+— A boss part belongs to one boss;  
+— Not every boss has a part;  
+— Every boss part belongs to a boss.  
+
+4)	Boss Part Stage spawns Enemy (N:M, O-O)  
+— A boss part stage spawns many enemies;  
+— An enemy is spawned by many boss part stages;  
+— Not every boss part stage spawns an enemy;  
+— Not every enemy is spawned by a boss part stage.  
+
+5)	Boss Part is a Entity (1:1, M-O)  
+— A boss part is one entity;  
+— An entity is one boss part;  
+— Every boss part is a entity;  
+— Not every entity is a boss part.  
+
+6) Boss Part Stage is a stage of Boss Part (N:1, M-O)  
+— A boss part stage is a stage of one boss part;  
+— A boss part has many boss part stages;  
+— Every boss part stage is a stage of a boss part;  
+— Not every boss part has a boss part stage.  
+
+7)	Enemy is a Entity (1:1, M-O)  
+— An enemy is one entity;  
+— An entity is one enemy;  
+— Every enemy is an entity;  
+— Not every entity is an enemy.  
+
+8)	Item is dropped by Entity (N:M, O-O)  
+— An item is dropped by many entities;  
+— An entity drops many items;  
+— Not every item is dropped by an entity.  
+— Not every entity drops an item;  
+
+9)	Item has Item Form (1:N, O-M)  
+— An item has many item forms;  
+— An item form belongs to one item;  
+— Not every item has an item form.  
+— Every item form belongs to an item;  
+
+10)	Item is traded by Town NPC (N:M, O-O)  
+— An item is traded by many town NPCs;  
+— A town NPC trades many items;  
+— Not every item is traded by a town NPC;  
+— Not every town NPC trades an item.  
+
+11)	Item is a CraftingStation (N:1, O-O)  
+— An item is one crafting station;  
+— A crafting station is many items;  
+— Not every item is a crafting station;  
+— Not every crafting station is an item.  
+
+12)	Town NPC is a Entity (1:1, M-O)  
+— A town NPC is one entity;  
+— An entity is one town NPC;  
+— Every town NPC is an entity;  
+— Not every entity is a town NPC.  
+
+13)	Town NPC has Town NPC Form (1:N, O-M)  
+— A town NPC has many town NPC forms;  
+— A town NPC form belongs to one town NPC;  
+— Not every town NPC has a town NPC form;  
+— Every town NPC form belongs to a town NPC. 
+
+14)	Item is a result of crafting with Item on Crafting Station (1:N:1, O-O-O)  
+—	An item is a result of crafting with an item on one crafting station;  
+—	An item is a result of crafting on a crafting station with many items;  
+—	A result of crafting with an item on a crafting station is one item;  
+— Not every item is a result of crafting;  
+— Not every item is required for crafting.  
+— Not every crafting station is used for crafting.  
+
+## Table 1 - Relationships between entities
+| N | Relationship |	Cardinality | Optionality |
+|---|---|---|---|
+| 1 |	Boss is summoned by Item |	1:1 |	O-O |
+| 2 |	Boss drops Item |	N:M	 | O-O |
+| 3 |	Boss has Boss Part |	1:N |	O-M |
+| 4 |	Boss Part Stage spawns Enemy |	N:M |	O-O |
+| 5 |	Boss Part is a Entity |	1:1 |	M-O |
+| 6 |	Boss Part Stage is a stage of Boss Part |	N:1 |	M-O |
+| 7 |	Enemy is a Entity |	1:1 |	M-O |
+| 8 |	Item is dropped by Entity |	N:M |	O-O |
+| 9 |	Item has Item Form |	1:N |	O-M |
+| 10 |	Item is traded by Town NPC |	N:M |	O-O |
+| 11 |	Item is a Crafting Station |	N:1 |	O-O |
+| 12 |	Town NPC is a Entity |	1:1 |	M-O |
+| 13 |	Town NPC has Town NPC Form |	1:N |	O-M |
+| 14 |	Item is a result of crafting with Item on Crafting Station |	1:N:1 |	O-O-O |
+
+# Conceptual Model
+![alt text](<conceptual model.drawio.png>)
+
+# Candidate keys and attributes of entities
+Note: CK – Candidate Key
+1)	**Boss** (#BossName)  
+— Boss Name (CK);  
+— Boss Sprite (CK).
+2)	**Boss Part** (BossPartId).  
+— Boss Part ID (CK);  
+— Boss Part Order ID;  
+— Quantity.  
+1) **Boss Part Stage** (#BossPartStageId)  
+— Boss Part Stage ID (CK);  
+— Boss Part Stage Order ID;  
+— Sprite;  
+— Contact Damage;  
+— Hp;  
+— Defense.  
+4)	**Enemy** (#EnemyId)  
+— Enemy ID (CK);  
+— Contact Damage;  
+— Hp;  
+— Defense.  
+5)	**Entity** (#InternalNpcId)  
+— Internal NPC ID (CK);  
+— Entity Name;  
+— Description.  
+6)	**Town NPC** (#TownNpcId)  
+— Town NPC ID (CK);  
+— Hp;  
+— Defense.  
+7)	**Town NPC Form** (#TownNpcFormId)  
+— Town NPC Form ID (CK);  
+— Town NPC Form Order ID;  
+— Town NPC Form Sprite (CK).  
+8)	**Item** (#InternalItemId)  
+— Internal Item ID (CK);  
+— Item Name;  
+— Buy Price;  
+— Sell Price;  
+— Buy Price Currency Type.  
+9)	**Item Form** (#ItemFormId)  
+— Item Form ID (CK);  
+— Item Form Order ID;  
+— Item Sprite;  
+— Tooltip.  
+9)	**Crafting Station** (#CraftingStationName)  
+— Crafting Station Name (CK);  
+— Crafting Station Sprite (CK);  
+
+# Resolving N-ary relationships
+Crafting relationship → Recipe entity:
+1)	**Item is used in Recipe** (N:M, O-M)  
+— An item is used in many recipes;  
+— A recipe requires many items;  
+— Not every item is used in a recipe;  
+— Every recipe requires an item.  
+2)	**Item is a result of Recipe** (1:N, O-M)  
+— An item is a result of many recipes;  
+— A recipe results in one item;  
+— Not every item is a result of a recipe;  
+— Every recipe results in an item.  
+3)	**Recipe requires Crafting Station** (N:1, O-O)  
+— A recipe requires one crafting station;  
+— A crafting station is required for many recipes;  
+— Not every recipe requires a crafting station;  
+— Not every crafting station is required for a recipe.  
+Recipe attributes:  
+— Recipe ID (CK);  
+— ResultItemQuantity.  
+
+# Resolving Many-to-Many relationships
+Boss drops Item → BossDrop (BossName, ItemId, Quantity)  
+Boss Part Form spawns Enemy → BossPartStageEnemies (BossPartStageId, EnemyId, Quantity)  
+Item is traded by Town NPC → TradeOffer (ItemId, TownNpcId, Quantity, TradeType)  
+Item is dropped by Entity → EntityDrop (ItemId, EntityId, Quantity)  
+Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)  
+
+# Primary keys, foreign keys and attributes
+1)	**Boss**  
+— BossId (PK);  
+— BossName;  
+— BossSprite;  
+— SummonItemId (FK, NULLABLE).  
+2)	**BossPart**  
+— BossPartId (PK);  
+— BossPartOrderId;  
+— Quantity;  
+— BossId (FK, NOT NULL);  
+— EntityId (FK, NOT NULL).  
+3)	**BossPartStage**  
+— BossPartStageId (PK);   
+— BossPartStageSprite;  
+— BossPartStageOrderId;  
+— ContactDamage;  
+— Hp;  
+— Defense;  
+— BossPartId (FK, NOT NULL).  
+4)	**Enemy**  
+— EnemyId (PK);  
+— ContactDamage;  
+— Hp;  
+— Defense;  
+— EntityId (FK, NOT NULL).  
+5)	**Entity**  
+— EntityId (PK);  
+— InternalNpcId;  
+— EntityName;
+— Description.  
+6)	**TownNpc**  
+— TownNpcId (PK);  
+— Hp;  
+— Defense;  
+— EntityId (FK, NOT NULL).  
+7)	**TownNpcForm**  
+— TownNpcFormId (PK);  
+— TownNpcFormSprite;  
+— TownNpcFormOrderId;  
+— TownNpcId (FK, NOT NULL).  
+8)	**Item**  
+— ItemId (PK);  
+— InternalItemId;  
+— ItemName;  
+— BuyPrice;  
+— SellPrice;  
+— BuyPriceCurrency;  
+— CraftingStationId (FK, NULLABLE).  
+9)	**ItemForm**  
+— ItemFormId (PK);  
+— ItemSprite;  
+— ItemFormOrderId;  
+— Tooltip;  
+— ItemId (FK, NULLABLE).  
+10)	**CraftingStation**  
+— CraftingStationId (PK);  
+— CraftingStationName;  
+— CraftingStationSprite.  
+11)	**Recipe**  
+— RecipeId (PK);  
+— ResultItemQuantity;  
+— ResultItemId (FK, NOT NULL);  
+— CraftingStationId (FK, NULLABLE).  
+12)	**BossDrop**  
+— BossDropId (PK);  
+— BossId (FK, NOT NULL);  
+— ItemId (FK, NOT NULL);  
+— Quantity.  
+13)	**BossPartStageEnemies**  
+— MinionId (PK);  
+— BossPartStageId (FK, NOT NULL);  
+— EnemyId (FK, NOT NULL);  
+— Quantity.  
+14)	**TradeOffer**  
+— TradeOfferId (PK);  
+— TownNpcId (FK, NOT NULL);  
+— ItemId (FK, NOT NULL);  
+— TradeType;  
+— Quantity.  
+15)	**EntityDrop**  
+— EntityDropId (PK);  
+— ItemId (FK, NOT NULL);  
+— EntityId (FK, NOT NULL);  
+— Quantity.  
+16)	**RecipeItems**  
+— IngredientId (PK);  
+— RecipeId (FK, NOT NULL);  
+— ItemId (FK, NOT NULL);  
+— Quantity.  
+
+# Logical model
+![alt text](<logical model.drawio.png>)
+
+# Data restrictions
+| Attribute | C# Data type |	Restrictions |
+|---|---|---|
+|| <center>**Boss**</center> ||
+| BossId | int | PK |
+| SummonItemId | int | NULLABLE FK, SetNull delete |
+| BossName | string | not empty, max length = 50, UNIQUE |
+| BossSprite | string | not empty, max length = 500, UNIQUE |
+|| <center>**BossPart**</center> ||
+| BossPartId | int | PK |
+| BossId | int | NOT NULL FK, Cascade delete |
+| EntityId | int | NOT NULL FK, Cascade delete |
+| BossPartOrderId | short | 0 <= BossPartOrderId <= 5, UNIQUE |
+| Quantity | short | Quantity > 0 |
+|| <center>**BossPartStage**</center> ||
+| BossPartStageId | int | PK |
+| BossPartId | int | NOT NULL FK, Cascade delete |
+| BossPartStageSprite | string | not empty max length = 500 |
+| BossPartStageOrderId | short | 0 <= BossPartOrderId <= 3, UNIQUE |
+| ContactDamage | short | ContactDamage >= 0 |
+| Hp | short | Hp >= 0 |
+| Defense | short | Defense >= 0 |
+|| <center>**Enemy**</center> ||
+| EnemyId | int | PK |
+| EntityId | int | NOT NULL FK, Cascade delete |
+| ContactDamage | short | ContactDamage >= 0 |
+| Hp | short | Hp >= 0 |
+| Defense | short | Defense >= 0 |
+|| <center>**Entity**</center> ||
+| EntityId | int | PK |
+| internalNpcId | short | UNIQUE |
+| EntityName | string | not empty max length = 50 |
+| Description | string |  max length = 200 |
+|| <center>**TownNpc**</center> ||
+| TownNpcId | int | PK |
+| EntityId | int | NOT NULL FK, Cascade delete |
+| Hp | short | Hp >= 0 |
+| Defense | short | Defense >= 0 |
+|| <center>**TownNpcForm**</center> ||
+| TownNpcFormId | int | PK |
+| TownNpcId | int | NOT NULL FK, Cascade delete |
+| TownNpcFormSprite | string | not empty, max length = 500, UNIQUE |
+| TownNpcFormOrderId | short | 0 <= BossPartOrderId <= 4, UNIQUE |
+|| <center>**Item**</center> ||
+| ItemId | int | PK |
+| CraftingStationId | int | NULLABLE FK, SetNull delete |
+| internalItemId | short | UNIQUE |
+| ItemName | string | not empty, max length = 50, UNIQUE |
+| BuyPrice | int | BuyPrice >= 0 |
+| SellPrice | int | SellPrice >= 0 |
+| BuyPriceCurrency | string | not empty max length = 50 |
+|| <center>**ItemForm**</center> ||
+| ItemFormId | int | PK |
+| ItemId | int | NOT NULL FK, Cascade delete |
+| ItemSprite | string | not empty, max length = 500, UNIQUE |
+| ItemFormOrderId | short | 0 <= BossPartOrderId <= 4, UNIQUE |
+| Tooltip | string |  max length = 200 |
+|| <center>**CraftingStation**</center> ||
+| CraftingStationId | int | PK |
+| CraftingStationName | string | not empty, max length = 50, UNIQUE |
+| CraftingStationSprite | string | not empty, max length = 500, UNIQUE |
+|| <center>**Recipe**</center> ||
+| RecipeId | int | PK |
+| ResultItemId | int | NOT NULL FK, Cascade delete |
+| CraftingStationId | int | NULLABLE FK, SetNull delete |
+| ResultItemQuantity | short | ResultItemQuantity > 0 |
+|| <center>**BossDrop**</center> ||
+| BossDropId | int | PK |
+| BossId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Cascade delete |
+| Quantity | short | Quantity > 0 |
+|| <center>**BossPartStageEnemies**</center> ||
+| MinionId | int | PK |
+| BossPartStageId | int | NOT NULL FK, Cascade delete |
+| EnemyId | int | NOT NULL FK, Cascade delete |
+| Quantity | short | Quantity > 0 |
+|| <center>**EntityDrop**</center> ||
+| EntityDropId | int | PK |
+| EntityId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Cascade delete |
+| Quantity | short | Quantity > 0 |
+|| <center>**TradeOffer**</center> ||
+| TradeOfferId | int | PK |
+| TownNpcId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Cascade delete |
+| Quantity | short | Quantity > 0 |
+| TradeType | string | not empty max length = 50 |
+|| <center>**RecipeItems**</center> ||
+| IngredientId | int | PK |
+| RecipeId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Cascade delete |
+| Quantity | short | Quantity > 0 |
+
+# Enums
+1) Currency { "Cooper coin", "Defender Medal" };
+2) TradeType { "Sell", "Reward", "Present" }.
