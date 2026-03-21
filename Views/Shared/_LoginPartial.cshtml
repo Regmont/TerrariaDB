@@ -1,33 +1,28 @@
-﻿﻿@using Microsoft.AspNetCore.Identity
-@inject SignInManager<IdentityUser> SignInManager
-@inject UserManager<IdentityUser> UserManager
+﻿@using Microsoft.AspNetCore.Identity
+@using TerrariaCompendium.Areas.Identity.Data
 
-<ul class="auth-nav">
-    @if (SignInManager.IsSignedIn(User))
-    {
-        @if (User.IsInRole("Admin"))
-        {
-            <li class="auth-item">
-                <a class="auth-link" asp-area="Identity" asp-page="/Account/Register">Register New Admin</a>
-            </li>
-        }
-        <li class="auth-item">
-            <form class="auth-form" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-                <button type="submit" class="auth-button">Logout</button>
-            </form>
-        </li>
-    }
-    else
-    {
-        @if (User.IsInRole("Admin"))
-        {
-            <li class="auth-item">
-                <a class="auth-link" asp-area="Identity" asp-page="/Account/Register">Register</a>
-            </li>
-        }
+@inject SignInManager<TerrariaCompendiumUser> SignInManager
+@inject UserManager<TerrariaCompendiumUser> UserManager
 
-        <li class="auth-item">
-            <a class="auth-link" asp-area="Identity" asp-page="/Account/Login">Login As Admin</a>
-        </li>
-    }
+<ul class="navbar-nav">
+@if (SignInManager.IsSignedIn(User))
+{
+    <li class="nav-item">
+        <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+            <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" id="manage" asp-area="Identity" asp-page="/Account/ManageAdmins">Manage</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
+    </li>
+}
 </ul>

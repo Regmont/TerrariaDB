@@ -2,79 +2,34 @@
 @model LoginModel
 
 @{
-    ViewData["Title"] = "Admin Login";
+    ViewData["Title"] = "Log in";
 }
 
-<div class="login-page">
-    <div class="login-container">
-        <div class="login-header">
-            <h1>ADMIN ACCESS</h1>
-        </div>
-
-        <div class="login-card">
-            <div class="admin-notice">
-                <p class="highlight">🔒 Restricted Area</p>
-                <p>This area is only for administrators who need to manage the Terraria database.</p>
-                <p>Administrators can:</p>
-                <p>✧ Edit and manage all game data</p>
-                <p>✧ Modify registry entries</p>
-                <p>✧ Update crafting information</p>
-                <p class="contact">To request admin access, contact: karmodziregmont@gmail.com</p>
-            </div>
-
+<h1>@ViewData["Title"]</h1>
+<div class="row">
+    <div class="col-md-4">
+        <section>
             <form id="account" method="post">
-                <div asp-validation-summary="ModelOnly" class="validation-message" role="alert"></div>
-
-                <div class="form-group">
-                    <div class="label-text">Login</div>
-                    <input asp-for="Input.Login" />
+                <h2>Use a local account to log in.</h2>
+                <hr />
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Login" class="form-control" autocomplete="username" aria-required="true" placeholder="login" />
+                    <label asp-for="Input.Login">Login</label>
+                    <span asp-validation-for="Input.Login" class="text-danger"></span>
                 </div>
-
-                <div class="form-group">
-                    <div class="label-text">Password</div>
-                    <input asp-for="Input.Password" type="password" />
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label asp-for="Input.Password">Password</label>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
                 </div>
-
-                <button type="submit" class="login-button">LOG IN</button>
+                <div>
+                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
             </form>
-        </div>
+        </section>
     </div>
 </div>
-
-<style>
-    input, input:focus, input:active, input:hover {
-        background-color: #1a1f2e !important;
-        border: 2px solid #8b6b4d !important;
-        color: #ffd700 !important;
-        font-family: 'Courier New', monospace !important;
-        font-size: 16px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
-        outline: none !important;
-    }
-
-        input:focus {
-            border-color: #c0a88c !important;
-            background-color: #141229 !important;
-        }
-
-            input:focus:not(:placeholder-shown) {
-                background-color: #0f1420 !important;
-                border-color: #ffd700 !important;
-            }
-
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-            background-color: #0f1420 !important;
-            border-color: #ffd700 !important;
-            -webkit-text-fill-color: #ffd700 !important;
-            -webkit-box-shadow: 0 0 0px 1000px #0f1420 inset !important;
-            transition: background-color 5000s ease-in-out 0s;
-        }
-</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

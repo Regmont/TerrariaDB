@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using TerrariaDB.Models;
+using TerrariaCompendium.Models;
 
-namespace TerrariaDB.Controllers
+namespace TerrariaCompendium.Controllers
 {
     public class HomeController : Controller
     {
@@ -14,6 +14,11 @@ namespace TerrariaDB.Controllers
         }
 
         public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Privacy()
         {
             return View();
         }

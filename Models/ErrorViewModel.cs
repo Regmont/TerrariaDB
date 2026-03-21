@@ -1,4 +1,4 @@
-namespace TerrariaDB.Models
+namespace TerrariaCompendium.Models
 {
     public class ErrorViewModel
     {

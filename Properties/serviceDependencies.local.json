@@ -2,11 +2,7 @@
   "dependencies": {
     "mssql1": {
       "type": "mssql.local",
-      "connectionId": "ConnectionStrings:DefaultConnection"
-    },
-    "mssql2": {
-      "type": "mssql.local",
-      "connectionId": "ConnectionStrings:TerrariaDBContextConnection"
+      "connectionId": "ConnectionStrings:TerrariaCompendiumContextConnection"
     }
   }
 }
