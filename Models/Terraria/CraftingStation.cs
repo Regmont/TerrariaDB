@@ -1,0 +1,12 @@
+﻿namespace TerrariaCompendium.Models.Terraria
+{
+    public class CraftingStation
+    {
+        public int CraftingStationId { get; set; }
+        public string CraftingStationName { get; set; } = string.Empty;
+        public string CraftingStationSprite { get; set; } = string.Empty;
+
+        public ICollection<Item> Items { get; set; } = new List<Item>();
+        public ICollection<Recipe> Recipes { get; set; } = new List<Recipe>();
+    }
+}

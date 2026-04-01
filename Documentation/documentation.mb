@@ -238,7 +238,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 — ItemSprite;  
 — ItemFormOrderId;  
 — Tooltip;  
-— ItemId (FK, NULLABLE).  
+— ItemId (FK, NOT NULL).  
 10)	**CraftingStation**  
 — CraftingStationId (PK);  
 — CraftingStationName;  
@@ -254,7 +254,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 — ItemId (FK, NOT NULL);  
 — Quantity.  
 13)	**BossPartStageEnemies**  
-— MinionId (PK);  
+— BossPartStageEnemiesId (PK);  
 — BossPartStageId (FK, NOT NULL);  
 — EnemyId (FK, NOT NULL);  
 — Quantity.  
@@ -270,7 +270,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 — EntityId (FK, NOT NULL);  
 — Quantity.  
 16)	**RecipeItems**  
-— IngredientId (PK);  
+— RecipeItemsId (PK);  
 — RecipeId (FK, NOT NULL);  
 — ItemId (FK, NOT NULL);  
 — Quantity.  
@@ -296,7 +296,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 | BossPartStageId | int | PK |
 | BossPartId | int | NOT NULL FK, Cascade delete |
 | BossPartStageSprite | string | not empty max length = 500 |
-| BossPartStageOrderId | short | 0 <= BossPartOrderId <= 3, UNIQUE |
+| BossPartStageOrderId | short | 0 <= BossPartStageOrderId <= 3, UNIQUE |
 | ContactDamage | short | ContactDamage >= 0 |
 | Hp | short | Hp >= 0 |
 | Defense | short | Defense >= 0 |
@@ -308,7 +308,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 | Defense | short | Defense >= 0 |
 || <center>**Entity**</center> ||
 | EntityId | int | PK |
-| internalNpcId | short | UNIQUE |
+| InternalNpcId | short | UNIQUE |
 | EntityName | string | not empty max length = 50 |
 | Description | string |  max length = 200 |
 || <center>**TownNpc**</center> ||
@@ -320,20 +320,20 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 | TownNpcFormId | int | PK |
 | TownNpcId | int | NOT NULL FK, Cascade delete |
 | TownNpcFormSprite | string | not empty, max length = 500, UNIQUE |
-| TownNpcFormOrderId | short | 0 <= BossPartOrderId <= 4, UNIQUE |
+| TownNpcFormOrderId | short | 0 <= TownNpcFormOrderId <= 4, UNIQUE |
 || <center>**Item**</center> ||
 | ItemId | int | PK |
 | CraftingStationId | int | NULLABLE FK, SetNull delete |
-| internalItemId | short | UNIQUE |
+| InternalItemId | short | UNIQUE |
 | ItemName | string | not empty, max length = 50, UNIQUE |
 | BuyPrice | int | BuyPrice >= 0 |
 | SellPrice | int | SellPrice >= 0 |
-| BuyPriceCurrency | string | not empty max length = 50 |
+| BuyPriceCurrency | Currency | not empty max length = 50 |
 || <center>**ItemForm**</center> ||
 | ItemFormId | int | PK |
 | ItemId | int | NOT NULL FK, Cascade delete |
 | ItemSprite | string | not empty, max length = 500, UNIQUE |
-| ItemFormOrderId | short | 0 <= BossPartOrderId <= 4, UNIQUE |
+| ItemFormOrderId | short | 0 <= ItemFormOrderId <= 4, UNIQUE |
 | Tooltip | string |  max length = 200 |
 || <center>**CraftingStation**</center> ||
 | CraftingStationId | int | PK |
@@ -350,7 +350,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 | ItemId | int | NOT NULL FK, Cascade delete |
 | Quantity | short | Quantity > 0 |
 || <center>**BossPartStageEnemies**</center> ||
-| MinionId | int | PK |
+| BossPartStageEnemiesId | int | PK |
 | BossPartStageId | int | NOT NULL FK, Cascade delete |
 | EnemyId | int | NOT NULL FK, Cascade delete |
 | Quantity | short | Quantity > 0 |
@@ -364,13 +364,15 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 | TownNpcId | int | NOT NULL FK, Cascade delete |
 | ItemId | int | NOT NULL FK, Cascade delete |
 | Quantity | short | Quantity > 0 |
-| TradeType | string | not empty max length = 50 |
+| TradeType | TradeType | not empty max length = 50 |
 || <center>**RecipeItems**</center> ||
-| IngredientId | int | PK |
+| RecipeItemsId | int | PK |
 | RecipeId | int | NOT NULL FK, Cascade delete |
 | ItemId | int | NOT NULL FK, Cascade delete |
 | Quantity | short | Quantity > 0 |
 
 # Enums
-1) Currency { "Cooper coin", "Defender Medal" };
+1) Currency { "Copper coin", "Defender Medal" };
 2) TradeType { "Sell", "Reward", "Present" }.
+
+#### See the model and enum classes in the project.
