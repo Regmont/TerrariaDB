@@ -12,6 +12,7 @@ namespace TerrariaCompendium
             var connectionString = builder.Configuration.GetConnectionString("TerrariaCompendiumContextConnection") ?? throw new InvalidOperationException("Connection string 'TerrariaCompendiumContextConnection' not found.");;
 
             builder.Services.AddDbContext<TerrariaCompendiumContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
             builder.Services.AddDefaultIdentity<TerrariaCompendiumUser>().AddEntityFrameworkStores<TerrariaCompendiumContext>();
 

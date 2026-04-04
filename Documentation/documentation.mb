@@ -279,7 +279,7 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 ![alt text](<logical model.drawio.png>)
 
 # Data restrictions
-| Attribute | C# Data type |	Restrictions |
+| Attribute | C# Data type | Restrictions |
 |---|---|---|
 || <center>**Boss**</center> ||
 | BossId | int | PK |
@@ -289,13 +289,13 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 || <center>**BossPart**</center> ||
 | BossPartId | int | PK |
 | BossId | int | NOT NULL FK, Cascade delete |
-| EntityId | int | NOT NULL FK, Cascade delete |
+| EntityId | int | NOT NULL FK, Restrict delete |
 | BossPartOrderId | short | 0 <= BossPartOrderId <= 5, UNIQUE |
 | Quantity | short | Quantity > 0 |
 || <center>**BossPartStage**</center> ||
 | BossPartStageId | int | PK |
 | BossPartId | int | NOT NULL FK, Cascade delete |
-| BossPartStageSprite | string | not empty max length = 500 |
+| BossPartStageSprite | string | not empty, max length = 500 |
 | BossPartStageOrderId | short | 0 <= BossPartStageOrderId <= 3, UNIQUE |
 | ContactDamage | short | ContactDamage >= 0 |
 | Hp | short | Hp >= 0 |
@@ -309,8 +309,8 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 || <center>**Entity**</center> ||
 | EntityId | int | PK |
 | InternalNpcId | short | UNIQUE |
-| EntityName | string | not empty max length = 50 |
-| Description | string |  max length = 200 |
+| EntityName | string | not empty, max length = 50 |
+| Description | string | max length = 200 |
 || <center>**TownNpc**</center> ||
 | TownNpcId | int | PK |
 | EntityId | int | NOT NULL FK, Cascade delete |
@@ -328,47 +328,47 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 | ItemName | string | not empty, max length = 50, UNIQUE |
 | BuyPrice | int | BuyPrice >= 0 |
 | SellPrice | int | SellPrice >= 0 |
-| BuyPriceCurrency | Currency | not empty max length = 50 |
+| BuyPriceCurrency | Currency | not empty, max length = 50 |
 || <center>**ItemForm**</center> ||
 | ItemFormId | int | PK |
 | ItemId | int | NOT NULL FK, Cascade delete |
 | ItemSprite | string | not empty, max length = 500, UNIQUE |
 | ItemFormOrderId | short | 0 <= ItemFormOrderId <= 4, UNIQUE |
-| Tooltip | string |  max length = 200 |
+| Tooltip | string | max length = 200 |
 || <center>**CraftingStation**</center> ||
 | CraftingStationId | int | PK |
 | CraftingStationName | string | not empty, max length = 50, UNIQUE |
 | CraftingStationSprite | string | not empty, max length = 500, UNIQUE |
 || <center>**Recipe**</center> ||
 | RecipeId | int | PK |
-| ResultItemId | int | NOT NULL FK, Cascade delete |
+| ResultItemId | int | NOT NULL FK, Restrict delete |
 | CraftingStationId | int | NULLABLE FK, SetNull delete |
 | ResultItemQuantity | short | ResultItemQuantity > 0 |
 || <center>**BossDrop**</center> ||
 | BossDropId | int | PK |
 | BossId | int | NOT NULL FK, Cascade delete |
-| ItemId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Restrict delete |
 | Quantity | short | Quantity > 0 |
 || <center>**BossPartStageEnemies**</center> ||
 | BossPartStageEnemiesId | int | PK |
 | BossPartStageId | int | NOT NULL FK, Cascade delete |
-| EnemyId | int | NOT NULL FK, Cascade delete |
+| EnemyId | int | NOT NULL FK, Restrict delete |
 | Quantity | short | Quantity > 0 |
 || <center>**EntityDrop**</center> ||
 | EntityDropId | int | PK |
 | EntityId | int | NOT NULL FK, Cascade delete |
-| ItemId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Restrict delete |
 | Quantity | short | Quantity > 0 |
 || <center>**TradeOffer**</center> ||
 | TradeOfferId | int | PK |
 | TownNpcId | int | NOT NULL FK, Cascade delete |
-| ItemId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Restrict delete |
 | Quantity | short | Quantity > 0 |
-| TradeType | TradeType | not empty max length = 50 |
+| TradeType | TradeType | not empty, max length = 50 |
 || <center>**RecipeItems**</center> ||
 | RecipeItemsId | int | PK |
 | RecipeId | int | NOT NULL FK, Cascade delete |
-| ItemId | int | NOT NULL FK, Cascade delete |
+| ItemId | int | NOT NULL FK, Restrict delete |
 | Quantity | short | Quantity > 0 |
 
 # Enums
@@ -376,3 +376,6 @@ Item is used in Recipe → RecipeItems (ItemId, RecipeId, Quantity)
 2) TradeType { "Sell", "Reward", "Present" }.
 
 #### See the model and enum classes in the project.
+
+# Physical model
+![alt text](<physical model.png>)
